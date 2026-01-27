@@ -1,25 +1,34 @@
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Streamdown } from 'streamdown';
-
 /**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Best Practices, Design Guide and Common Pitfalls
+ * DESIGN: Digital Fortress Vault
+ * - Dark navy backgrounds with luminous cyan/emerald accents
+ * - Glassmorphism and depth effects for premium feel
+ * - The "Vault" is the central metaphor—secure, exclusive, protected
  */
-export default function Home() {
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
 
+import { HeroSection } from "@/components/sections/HeroSection";
+import { ScannerShowcase } from "@/components/sections/ScannerShowcase";
+import { ProblemAgitation } from "@/components/sections/ProblemAgitation";
+import { VaultBenefits } from "@/components/sections/VaultBenefits";
+import { SocialProof } from "@/components/sections/SocialProof";
+import { HowItWorks } from "@/components/sections/HowItWorks";
+import { VaultCTA } from "@/components/sections/VaultCTA";
+import { Footer } from "@/components/sections/Footer";
+import { Navbar } from "@/components/layout/Navbar";
+
+export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+      <Navbar />
       <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
+        <HeroSection />
+        <ScannerShowcase />
+        <ProblemAgitation />
+        <VaultBenefits />
+        <SocialProof />
+        <HowItWorks />
+        <VaultCTA />
       </main>
+      <Footer />
     </div>
   );
 }
