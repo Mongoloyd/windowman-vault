@@ -10,7 +10,11 @@ import { useRef } from "react";
 import { Scan, CheckCircle, AlertTriangle, FileSearch, Shield, Zap } from "lucide-react";
 import { QuoteScanner } from "@/components/scanner/QuoteScanner";
 
-export function ScannerShowcase() {
+interface ScannerShowcaseProps {
+  onGetScan?: () => void;
+}
+
+export function ScannerShowcase({ onGetScan }: ScannerShowcaseProps) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
@@ -49,7 +53,7 @@ export function ScannerShowcase() {
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.8 }}
           >
-            <QuoteScanner />
+            <QuoteScanner onGetScan={onGetScan} />
           </motion.div>
 
           {/* Right - Features & Sample Result */}

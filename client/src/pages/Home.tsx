@@ -5,6 +5,7 @@
  * - The "Vault" is the central metaphor—secure, exclusive, protected
  */
 
+import { useState, useCallback } from "react";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { ScannerShowcase } from "@/components/sections/ScannerShowcase";
 import { ProblemAgitation } from "@/components/sections/ProblemAgitation";
@@ -14,21 +15,35 @@ import { HowItWorks } from "@/components/sections/HowItWorks";
 import { VaultCTA } from "@/components/sections/VaultCTA";
 import { Footer } from "@/components/sections/Footer";
 import { Navbar } from "@/components/layout/Navbar";
+import { VaultLeadGateModal } from "@/components/vault-gate/VaultLeadGateModal";
 
 export default function Home() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const openModal = useCallback(() => {
+    setIsModalOpen(true);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      <Navbar />
+      <Navbar onGetScan={openModal} />
       <main>
-        <HeroSection />
-        <ScannerShowcase />
+        <HeroSection onGetScan={openModal} />
+        <ScannerShowcase onGetScan={openModal} />
         <ProblemAgitation />
         <VaultBenefits />
         <SocialProof />
         <HowItWorks />
-        <VaultCTA />
+        <VaultCTA onGetScan={openModal} />
       </main>
       <Footer />
+      
+      {/* Vault Lead Gate Modal */}
+      <VaultLeadGateModal isOpen={isModalOpen} onClose={closeModal} />
     </div>
   );
 }

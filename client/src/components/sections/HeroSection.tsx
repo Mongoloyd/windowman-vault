@@ -9,11 +9,19 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Shield, Scan, TrendingDown, ArrowRight } from "lucide-react";
 
-export function HeroSection() {
-  const scrollToScanner = () => {
-    const element = document.getElementById("scanner");
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
+interface HeroSectionProps {
+  onGetScan?: () => void;
+}
+
+export function HeroSection({ onGetScan }: HeroSectionProps) {
+  const handleGetScan = () => {
+    if (onGetScan) {
+      onGetScan();
+    } else {
+      const element = document.getElementById("scanner");
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
     }
   };
 
@@ -91,7 +99,7 @@ export function HeroSection() {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Button
-                onClick={scrollToScanner}
+                onClick={handleGetScan}
                 size="lg"
                 className="bg-[oklch(0.75_0.15_195)] hover:bg-[oklch(0.80_0.16_195)] text-[oklch(0.10_0.02_250)] font-semibold px-8 py-6 text-lg shadow-lg shadow-[oklch(0.75_0.15_195_/_30%)] transition-all hover:shadow-[oklch(0.75_0.15_195_/_50%)] pulse-glow group"
               >

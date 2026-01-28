@@ -9,13 +9,18 @@ import { Button } from '@/components/ui/button';
 
 interface VaultCTAProps {
   onScanClick?: () => void;
+  onGetScan?: () => void;
 }
 
-export function VaultCTA({ onScanClick }: VaultCTAProps) {
-  const scrollToScanner = () => {
-    const scanner = document.getElementById('scanner');
-    if (scanner) {
-      scanner.scrollIntoView({ behavior: 'smooth' });
+export function VaultCTA({ onScanClick, onGetScan }: VaultCTAProps) {
+  const handleScan = () => {
+    if (onGetScan) {
+      onGetScan();
+    } else {
+      const scanner = document.getElementById('scanner');
+      if (scanner) {
+        scanner.scrollIntoView({ behavior: 'smooth' });
+      }
     }
     onScanClick?.();
   };
@@ -62,7 +67,7 @@ export function VaultCTA({ onScanClick }: VaultCTAProps) {
             whileTap={{ scale: 0.98 }}
           >
             <Button
-              onClick={scrollToScanner}
+              onClick={handleScan}
               size="lg"
               className="bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-white font-bold text-lg px-10 py-7 rounded-xl shadow-lg shadow-cyan-500/25"
             >

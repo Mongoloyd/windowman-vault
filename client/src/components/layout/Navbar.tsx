@@ -9,9 +9,22 @@ import { Button } from "@/components/ui/button";
 import { Shield, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export function Navbar() {
+interface NavbarProps {
+  onGetScan?: () => void;
+}
+
+export function Navbar({ onGetScan }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleGetScan = () => {
+    if (onGetScan) {
+      onGetScan();
+      setIsMobileMenuOpen(false);
+    } else {
+      scrollToSection("vault-cta");
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -79,7 +92,7 @@ export function Navbar() {
           {/* CTA Button */}
           <div className="hidden md:block">
             <Button
-              onClick={() => scrollToSection("vault-cta")}
+              onClick={handleGetScan}
               className="bg-[oklch(0.75_0.15_195)] hover:bg-[oklch(0.80_0.16_195)] text-[oklch(0.10_0.02_250)] font-semibold px-6 shadow-lg shadow-[oklch(0.75_0.15_195_/_30%)] transition-all hover:shadow-[oklch(0.75_0.15_195_/_50%)]"
             >
               Get Free Scan
@@ -125,7 +138,7 @@ export function Navbar() {
                 Testimonials
               </button>
               <Button
-                onClick={() => scrollToSection("vault-cta")}
+                onClick={handleGetScan}
                 className="bg-[oklch(0.75_0.15_195)] hover:bg-[oklch(0.80_0.16_195)] text-[oklch(0.10_0.02_250)] font-semibold w-full"
               >
                 Get Free Scan
