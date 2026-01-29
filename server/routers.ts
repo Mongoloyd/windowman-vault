@@ -3,6 +3,8 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
+import { storagePut } from "./storage";
+import { nanoid } from "nanoid";
 import { 
   createLead, 
   upsertLead, 
@@ -194,6 +196,35 @@ export const appRouter = router({
       .input(z.object({ leadId: z.number() }))
       .query(async ({ input }) => {
         return await getLatestScanForLead(input.leadId);
+      }),
+  }),
+
+  // ============================================
+  // FILE UPLOAD API
+  // ============================================
+  upload: router({
+    // Upload a file to storage and return the URL
+    file: publicProcedure
+      .input(z.object({
+        fileData: z.string(), // Base64 encoded file data
+        mimeType: z.string(),
+        leadId: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { fileData, mimeType, leadId } = input;
+        
+        // Convert base64 to buffer
+        const buffer = Buffer.from(fileData, 'base64');
+        
+        // Generate unique filename
+        const ext = mimeType.split('/')[1] || 'bin';
+        const filename = `${leadId || 'temp'}_${nanoid()}.${ext}`;
+        const key = `estimates/${filename}`;
+        
+        // Upload to storage
+        const { url } = await storagePut(key, buffer, mimeType);
+        
+        return { url, key };
       }),
   }),
 });

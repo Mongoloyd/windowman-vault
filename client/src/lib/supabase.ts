@@ -82,24 +82,26 @@ export interface QuoteScanResult {
 // ============================================
 
 /**
- * Analyze a quote image using client-side Gemini AI
- * NO Edge Functions - runs directly in browser
+ * Analyze a quote image using client-side Gemini AI (STORAGE-FIRST)
+ * 
+ * This function accepts a public URL to the uploaded quote image.
+ * NO Base64 encoding - avoids network crashes on large files.
  * 
  * Note: Database persistence is now handled via tRPC in the calling component
  */
 export async function analyzeQuote(
-  imageBase64: string,
+  imageUrl: string,
   mimeType: string,
   leadId?: string,
   eventId?: string
 ): Promise<{ data: QuoteScanResult | null; error: Error | null }> {
   try {
-    console.log('[analyzeQuote] Starting client-side analysis with Gemini...');
+    console.log('[analyzeQuote] Starting storage-first analysis with Gemini...');
     
     // Import the scanner engine dynamically to avoid circular deps
-    const { analyzeQuoteFromBase64 } = await import('./scannerEngine');
+    const { analyzeQuoteFromUrl } = await import('./scannerEngine');
     
-    const result = await analyzeQuoteFromBase64(imageBase64, mimeType);
+    const result = await analyzeQuoteFromUrl(imageUrl, mimeType);
     
     // Map AnalysisData to QuoteScanResult format
     const scanResult: QuoteScanResult = {
@@ -118,30 +120,10 @@ export async function analyzeQuote(
     
     return { data: scanResult, error: null };
   } catch (err) {
-    console.error('[analyzeQuote] Client-side analysis error:', JSON.stringify(err, null, 2));
+    console.error('[analyzeQuote] Storage-first analysis error:', JSON.stringify(err, null, 2));
     return { 
       data: null, 
       error: err instanceof Error ? err : new Error(String(err)) 
     };
   }
-}
-
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
-
-/**
- * Helper: Convert file to base64
- */
-export async function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64 = result.split(',')[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 }

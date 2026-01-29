@@ -17,3 +17,11 @@
 
 ## Bug Fixes
 - [x] Fix leadId mismatch - local session IDs vs database IDs
+
+## Production-Ready Scanner Fixes
+- [x] Kill Base64: Remove fileToBase64 and compressImage functions
+- [x] Implement storage-first upload via tRPC
+- [x] Update analyzeQuote to accept URL instead of Base64
+- [ ] Fix persistent uploads in QuoteScanner.tsx
+- [x] Sync QuoteAnalysisResult types with server-side scans schema
+- [x] Verify Gemini 3 Pro configuration

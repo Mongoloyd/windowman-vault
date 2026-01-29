@@ -644,12 +644,12 @@ export function getMockAnalysis(): AnalysisData {
 // ============================================
 
 // 3-tier fallback chain for maximum reliability:
-// 1. Gemini 2.5 Pro - Best reasoning (paid tier)
-// 2. Gemini 2.0 Flash - Good balance of speed/quality
+// 1. Gemini 3 Pro - PhD-level reasoning for catching warranty traps (paid tier)
+// 2. Gemini 2.5 Pro - Excellent reasoning (paid tier fallback)
 // 3. Gemini 1.5 Flash - Highest free tier limits
 const MODEL_CHAIN = [
+  'gemini-3-pro-preview',
   'gemini-2.5-pro',
-  'gemini-2.0-flash',
   'gemini-1.5-flash',
 ] as const;
 
