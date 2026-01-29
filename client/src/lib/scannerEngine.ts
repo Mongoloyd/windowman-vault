@@ -557,8 +557,10 @@ export async function analyzeQuote(
   // Initialize Gemini
   const genAI = new GoogleGenerativeAI(apiKey);
   
+  console.log(`[ScannerEngine] Using Gemini 3 Flash: ${GEMINI_MODEL}`);
+  
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: GEMINI_MODEL,
     generationConfig: {
       responseMimeType: 'application/json',
     },
@@ -643,20 +645,14 @@ export function getMockAnalysis(): AnalysisData {
 // MODEL CONFIGURATION
 // ============================================
 
-// 3-tier fallback chain for maximum reliability:
-// 1. Gemini 2.0 Pro - Best available reasoning (2026 stable)
-// 2. Gemini 1.5 Pro - Proven reliability (fallback)
-// 3. Gemini 1.5 Flash - Highest free tier limits
-// Note: Google Generative AI SDK requires fully qualified model names
-const MODEL_CHAIN = [
-  'models/gemini-2.0-pro',
-  'models/gemini-1.5-pro',
-  'models/gemini-1.5-flash-001',
-] as const;
+// SINGLE MODEL - Gemini 3 Flash ONLY (no fallbacks per user requirement)
+// Model ID: gemini-3-flash-preview (from Google AI docs Jan 2026)
+// Context: 1M input / 64k output, Knowledge cutoff: Jan 2025
+const GEMINI_MODEL = 'gemini-3-flash-preview';
 
-// Legacy exports for compatibility
-const PRIMARY_MODEL = MODEL_CHAIN[0];
-const FALLBACK_MODEL = MODEL_CHAIN[1];
+// Legacy exports for compatibility (all point to same model)
+const PRIMARY_MODEL = GEMINI_MODEL;
+const FALLBACK_MODEL = GEMINI_MODEL;
 
 // Error classification for debugging
 function classifyGeminiError(error: unknown): string {
@@ -701,6 +697,8 @@ export async function analyzeQuoteFromUrl(
     throw new Error('Gemini API key not configured. Please set VITE_GEMINI_API_KEY.');
   }
 
+  console.log(`[ScannerEngine] Using Gemini 3 Flash: ${GEMINI_MODEL}`);
+  
   const genAI = new GoogleGenerativeAI(apiKey);
   const userPrompt = buildUserPrompt(openingCountHint, areaName);
 
@@ -709,60 +707,48 @@ export async function analyzeQuoteFromUrl(
   const imageBlob = await imageResponse.blob();
   const base64Data = await blobToBase64(imageBlob);
 
-  // Try each model in the chain until one succeeds
-  let lastError: Error | null = null;
+  // Use ONLY Gemini 3 Flash - no fallback models
+  const model = genAI.getGenerativeModel({
+    model: GEMINI_MODEL,
+    generationConfig: {
+      responseMimeType: 'application/json',
+    },
+  });
   
-  for (const modelName of MODEL_CHAIN) {
+  try {
+    const result = await model.generateContent([
+      { text: EXTRACTION_RUBRIC },
+      { text: userPrompt },
+      {
+        inlineData: {
+          mimeType,
+          data: base64Data,
+        },
+      },
+    ]);
+
+    console.log(`[ScannerEngine] ✅ Analysis completed with ${GEMINI_MODEL}`);
+    
+    const response = result.response;
+    const text = response.text();
+    
+    let signals: ExtractionSignals;
     try {
-      console.log(`[ScannerEngine] Attempting analysis with ${modelName}...`);
-      
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          responseMimeType: 'application/json',
-        },
-      });
-      
-      const result = await model.generateContent([
-        { text: EXTRACTION_RUBRIC },
-        { text: userPrompt },
-        {
-          inlineData: {
-            mimeType,
-            data: base64Data,
-          },
-        },
-      ]);
-
-      console.log(`[ScannerEngine] ✅ Analysis completed with ${modelName}`);
-      
-      const response = result.response;
-      const text = response.text();
-      
-      let signals: ExtractionSignals;
-      try {
-        signals = JSON.parse(text);
-      } catch {
-        console.error('[ScannerEngine] Failed to parse Gemini response:', text);
-        throw new Error('Failed to parse AI response. Please try again.');
-      }
-
-      return scoreFromSignals(signals, openingCountHint ?? null);
-      
-    } catch (error) {
-      const errorClassification = classifyGeminiError(error);
-      console.error(`[ScannerEngine] ❌ ${modelName} FAILED`);
-      console.error(`[ScannerEngine] Error Classification: ${errorClassification}`);
-      console.error(`[ScannerEngine] Raw Error:`, error);
-      lastError = error instanceof Error ? error : new Error(String(error));
-      
-      // Continue to next model in chain
-      continue;
+      signals = JSON.parse(text);
+    } catch {
+      console.error('[ScannerEngine] Failed to parse Gemini response:', text);
+      throw new Error('Failed to parse AI response. Please try again.');
     }
-  }
 
-  // All models failed
-  throw lastError || new Error('All Gemini models failed. Please try again later.');
+    return scoreFromSignals(signals, openingCountHint ?? null);
+    
+  } catch (error) {
+    const errorClassification = classifyGeminiError(error);
+    console.error(`[ScannerEngine] ❌ ${GEMINI_MODEL} FAILED`);
+    console.error(`[ScannerEngine] Error Classification: ${errorClassification}`);
+    console.error(`[ScannerEngine] Raw Error:`, error);
+    throw error;
+  }
 }
 
 // ============================================
@@ -781,63 +767,53 @@ export async function analyzeQuoteFromBase64(
     throw new Error('Gemini API key not configured. Please set VITE_GEMINI_API_KEY.');
   }
 
+  console.log(`[ScannerEngine] Using Gemini 3 Flash: ${GEMINI_MODEL}`);
+  
   const genAI = new GoogleGenerativeAI(apiKey);
   const userPrompt = buildUserPrompt(openingCountHint, areaName);
 
-  // Try each model in the chain until one succeeds
-  let lastError: Error | null = null;
+  // Use ONLY Gemini 3 Flash - no fallback models
+  const model = genAI.getGenerativeModel({
+    model: GEMINI_MODEL,
+    generationConfig: {
+      responseMimeType: 'application/json',
+    },
+  });
   
-  for (const modelName of MODEL_CHAIN) {
+  try {
+    const result = await model.generateContent([
+      { text: EXTRACTION_RUBRIC },
+      { text: userPrompt },
+      {
+        inlineData: {
+          mimeType,
+          data: base64Data,
+        },
+      },
+    ]);
+
+    console.log(`[ScannerEngine] ✅ Analysis completed with ${GEMINI_MODEL}`);
+    
+    const response = result.response;
+    const text = response.text();
+    
+    let signals: ExtractionSignals;
     try {
-      console.log(`[ScannerEngine] Attempting analysis with ${modelName}...`);
-      
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          responseMimeType: 'application/json',
-        },
-      });
-      
-      const result = await model.generateContent([
-        { text: EXTRACTION_RUBRIC },
-        { text: userPrompt },
-        {
-          inlineData: {
-            mimeType,
-            data: base64Data,
-          },
-        },
-      ]);
-
-      console.log(`[ScannerEngine] ✅ Analysis completed with ${modelName}`);
-      
-      const response = result.response;
-      const text = response.text();
-      
-      let signals: ExtractionSignals;
-      try {
-        signals = JSON.parse(text);
-      } catch {
-        console.error('[ScannerEngine] Failed to parse Gemini response:', text);
-        throw new Error('Failed to parse AI response. Please try again.');
-      }
-
-      return scoreFromSignals(signals, openingCountHint ?? null);
-      
-    } catch (error) {
-      const errorClassification = classifyGeminiError(error);
-      console.error(`[ScannerEngine] ❌ ${modelName} FAILED`);
-      console.error(`[ScannerEngine] Error Classification: ${errorClassification}`);
-      console.error(`[ScannerEngine] Raw Error:`, error);
-      lastError = error instanceof Error ? error : new Error(String(error));
-      
-      // Continue to next model in chain
-      continue;
+      signals = JSON.parse(text);
+    } catch {
+      console.error('[ScannerEngine] Failed to parse Gemini response:', text);
+      throw new Error('Failed to parse AI response. Please try again.');
     }
-  }
 
-  // All models failed
-  throw lastError || new Error('All Gemini models failed. Please try again later.');
+    return scoreFromSignals(signals, openingCountHint ?? null);
+    
+  } catch (error) {
+    const errorClassification = classifyGeminiError(error);
+    console.error(`[ScannerEngine] ❌ ${GEMINI_MODEL} FAILED`);
+    console.error(`[ScannerEngine] Error Classification: ${errorClassification}`);
+    console.error(`[ScannerEngine] Raw Error:`, error);
+    throw error;
+  }
 }
 
 // ============================================

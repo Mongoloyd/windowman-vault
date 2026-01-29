@@ -99,8 +99,11 @@ export interface AttributionData {
   utm_content?: string;
   fbclid?: string;
   gclid?: string;
+  msclkid?: string;  // Microsoft Ads click ID
   fbp?: string;
   fbc?: string;
+  referrer?: string;
+  landing_page?: string;
 }
 
 // State machine action types

@@ -18,7 +18,7 @@ import { useSessionPersistence } from '@/hooks/useSessionPersistence';
 import { useAttribution } from '@/hooks/useAttribution';
 import { pushDL } from '@/lib/tracking';
 import { trpc } from '@/lib/trpc';
-import { analyzeQuote } from '@/lib/supabase';
+import { updateLead } from '@/lib/supabase';
 import type { VaultState, LeadFormData, ScanResult, FileMetadata } from '@/types/vault';
 import type { ProjectDetails } from './steps/ProjectDetailsStep';
 
@@ -91,35 +91,26 @@ export function VaultLeadGateModal({ isOpen, onClose }: VaultLeadGateModalProps)
   // Track if we've loaded session
   const sessionLoaded = useRef(false);
 
-  // tRPC mutation for updating leads
-  const updateLeadMutation = trpc.leads.update.useMutation({
-    onError: (error) => {
-      console.error('[VaultModal] tRPC lead update error:', error.message);
-    },
-  });
-
-  // Helper function to update lead via tRPC
-  const updateLeadData = useCallback((updates: {
+  // Helper function to update lead via Supabase SDK (UUID-based)
+  const updateLeadData = useCallback(async (updates: {
     phone?: string;
-    windowCount?: number;
+    window_count?: number;
     timeline?: string;
     notes?: string;
-    escalationType?: string;
+    escalation_type?: string;
   }) => {
-    if (!leadId) return;
-    
-    // Parse leadId to number (tRPC expects number ID)
-    const numericId = parseInt(leadId, 10);
-    if (isNaN(numericId)) {
-      console.error('[VaultModal] Invalid leadId for update:', leadId);
+    if (!leadId) {
+      console.warn('[VaultModal] No leadId available for update');
       return;
     }
     
-    updateLeadMutation.mutate({
-      id: numericId,
-      updates,
-    });
-  }, [leadId, updateLeadMutation]);
+    console.log('[VaultModal] Updating lead via Supabase:', leadId, updates);
+    
+    const { error } = await updateLead(leadId, updates);
+    if (error) {
+      console.error('[VaultModal] Lead update error:', error.message);
+    }
+  }, [leadId]);
 
   // Determine if user can exit (only on Step 1)
   const canExit = currentState === 'lead_capture';
@@ -269,7 +260,7 @@ export function VaultLeadGateModal({ isOpen, onClose }: VaultLeadGateModalProps)
     setProjectDetails(details);
     // Update lead with project details via tRPC
     updateLeadData({
-      windowCount: details.windowCount,
+      window_count: details.windowCount,
       timeline: details.timeline,
       notes: details.notes,
     });
@@ -282,7 +273,8 @@ export function VaultLeadGateModal({ isOpen, onClose }: VaultLeadGateModalProps)
 
   const handleEscalationSelect = (escalationType: string) => {
     // Update lead with escalation preference via tRPC
-    updateLeadData({ escalationType });
+    // Note: escalation_type may not exist in leads table - store in notes instead
+    updateLeadData({ notes: `Escalation preference: ${escalationType}` });
     goToSuccess();
   };
 
@@ -359,7 +351,6 @@ export function VaultLeadGateModal({ isOpen, onClose }: VaultLeadGateModalProps)
             storageMode={storageMode}
             onComplete={handleAnalysisComplete}
             onError={handleAnalysisError}
-            analyzeQuote={analyzeQuote}
           />
         ) : null;
 

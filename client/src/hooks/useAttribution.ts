@@ -36,9 +36,13 @@ function extractAttribution(): AttributionData {
     utm_content: params.get('utm_content') || undefined,
     fbclid: params.get('fbclid') || undefined,
     gclid: params.get('gclid') || undefined,
+    msclkid: params.get('msclkid') || undefined,  // Microsoft Ads click ID
     // Facebook browser ID and click ID from cookies
     fbp: getCookie('_fbp') || undefined,
     fbc: getCookie('_fbc') || undefined,
+    // Page context
+    referrer: document.referrer || undefined,
+    landing_page: window.location.href,
   };
 }
 

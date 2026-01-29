@@ -12,6 +12,13 @@
  * 3. Evaluating Price Fairness (40-60%)
  * 4. Reviewing Fine Print Transparency (60-80%)
  * 5. Verifying Warranty & Protection (80-100%)
+ * 
+ * ARCHITECTURE: Storage-first approach
+ * 1. Upload file to Supabase Storage (estimates bucket)
+ * 2. Get public URL
+ * 3. Pass URL to Gemini 3 Flash for analysis
+ * 4. Save results to Supabase scans table
+ * 5. Dual-write to wm_leads for CRM scoring
  */
 
 import { useEffect, useState, useRef } from 'react';
@@ -19,6 +26,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, CheckCircle, Loader2 } from 'lucide-react';
 import { THEATER_STAGES } from '@/types/vault';
 import type { ScanResult } from '@/types/vault';
+import { 
+  uploadToStorage, 
+  analyzeQuote, 
+  createScan, 
+  upsertWMLead,
+  updateLead 
+} from '@/lib/supabase';
 
 interface AnalysisTheaterStepProps {
   eventId: string;
@@ -27,12 +41,6 @@ interface AnalysisTheaterStepProps {
   storageMode: 'base64' | 'storage';
   onComplete: (results: ScanResult) => void;
   onError: (error: string) => void;
-  analyzeQuote: (
-    fileName: string,
-    mimeType: string,
-    leadId?: string,
-    eventId?: string
-  ) => Promise<{ data: ScanResult | null; error: Error | null }>;
 }
 
 export function AnalysisTheaterStep({
@@ -42,11 +50,11 @@ export function AnalysisTheaterStep({
   storageMode,
   onComplete,
   onError,
-  analyzeQuote,
 }: AnalysisTheaterStepProps) {
   const [progress, setProgress] = useState(0);
   const [currentStage, setCurrentStage] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('Uploading document...');
   const analysisStarted = useRef(false);
   const analysisResult = useRef<ScanResult | null>(null);
 
@@ -57,19 +65,98 @@ export function AnalysisTheaterStep({
 
     const runAnalysis = async () => {
       try {
-        // Use storage-first approach: upload file to S3 via tRPC, then analyze from URL
-        // The analyzeQuote function now expects a URL, not Base64
-        const { data, error } = await analyzeQuote(file.name, file.type, leadId, eventId);
+        // STEP 1: Upload file to Supabase Storage
+        setStatusMessage('Uploading document to secure vault...');
+        console.log('[AnalysisTheater] Uploading file to Supabase Storage...');
         
-        if (error) {
-          throw error;
+        const uploadResult = await uploadToStorage(file, leadId);
+        
+        if (!uploadResult) {
+          throw new Error('Failed to upload file to storage');
         }
         
-        if (data) {
-          analysisResult.current = data;
-        } else {
+        const { url: fileUrl, path: filePath } = uploadResult;
+        console.log('[AnalysisTheater] File uploaded:', fileUrl);
+
+        // STEP 2: Analyze with Gemini 3 Flash
+        setStatusMessage('AI analyzing your quote...');
+        console.log('[AnalysisTheater] Starting Gemini 3 Flash analysis...');
+        
+        const { data: scanResult, error: analysisError } = await analyzeQuote(
+          fileUrl,
+          file.type,
+          leadId,
+          eventId
+        );
+        
+        if (analysisError) {
+          throw analysisError;
+        }
+        
+        if (!scanResult) {
           throw new Error('No analysis result returned');
         }
+
+        console.log('[AnalysisTheater] Analysis complete:', scanResult.overallScore);
+
+        // STEP 3: Save scan to Supabase scans table
+        setStatusMessage('Saving audit results...');
+        console.log('[AnalysisTheater] Saving scan to Supabase...');
+        
+        const { error: scanSaveError } = await createScan({
+          lead_id: leadId,
+          quote_url: fileUrl,
+          overall_score: scanResult.overallScore,
+          audit_details: {
+            safety_score: scanResult.safetyScore,
+            scope_score: scanResult.scopeScore,
+            price_score: scanResult.priceScore,
+            fine_print_score: scanResult.finePrintScore,
+            warranty_score: scanResult.warrantyScore,
+            warnings: scanResult.warnings,
+            missing_items: scanResult.missingItems,
+            summary: scanResult.summary,
+            price_per_opening: scanResult.pricePerOpening,
+            estimated_savings: scanResult.estimatedSavings,
+          },
+          raw_response: scanResult.rawResult ? JSON.stringify(scanResult.rawResult) : undefined,
+        });
+        
+        if (scanSaveError) {
+          console.error('[AnalysisTheater] Scan save error:', scanSaveError);
+          // Don't throw - we still have the results
+        }
+
+        // STEP 4: Lead already created - scan data is in scans table
+        console.log('[AnalysisTheater] Lead and scan data saved successfully');
+
+        // STEP 5: Dual-write to wm_leads for CRM scoring
+        setStatusMessage('Calculating lead score...');
+        console.log('[AnalysisTheater] Upserting wm_leads for CRM...');
+        
+        // Calculate CRM scores from audit results
+        const engagementScore = Math.round(scanResult.overallScore * 0.8 + 20); // 20-100 scale
+        const leadQuality = scanResult.overallScore >= 70 ? 'hot' 
+          : scanResult.overallScore >= 50 ? 'warm' 
+          : 'cold';
+        const estimatedDealValue = scanResult.pricePerOpening 
+          ? parseInt(scanResult.pricePerOpening.replace(/[^0-9]/g, '')) * 10 // Rough estimate
+          : 15000; // Default
+        
+        // Note: quote_score and has_red_flags are stored in scans.audit_details, not wm_leads
+        // wm_leads only has CRM scoring fields
+        await upsertWMLead({
+          lead_id: leadId,
+          engagement_score: engagementScore,
+          lead_quality: leadQuality,
+          estimated_deal_value: estimatedDealValue,
+          status: 'new',
+          original_source_tool: 'vault_scanner',
+        });
+
+        // Store result for progress animation completion
+        analysisResult.current = scanResult;
+        
       } catch (err) {
         console.error('[AnalysisTheater] Analysis error:', err);
         onError(err instanceof Error ? err.message : 'Analysis failed');
@@ -77,11 +164,11 @@ export function AnalysisTheaterStep({
     };
 
     runAnalysis();
-  }, [file, analyzeQuote, onError]);
+  }, [file, leadId, eventId, onError]);
 
   // Progress animation
   useEffect(() => {
-    const TOTAL_DURATION = 30000; // 30 seconds for deep audit with Gemini 2.5 Pro
+    const TOTAL_DURATION = 30000; // 30 seconds for deep audit with Gemini 3 Flash
     const STAGE_DURATION = TOTAL_DURATION / THEATER_STAGES.length;
     const TICK_INTERVAL = 50; // Update every 50ms
     const TICKS_PER_STAGE = STAGE_DURATION / TICK_INTERVAL;
@@ -152,7 +239,7 @@ export function AnalysisTheaterStep({
           Running Deep Audit
         </h2>
         <p className="text-gray-400">
-          Verifying fine print and Florida code compliance...
+          {statusMessage}
         </p>
       </div>
 

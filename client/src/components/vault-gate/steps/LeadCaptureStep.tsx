@@ -14,7 +14,9 @@
  * - Form values preserved on error
  * - Minimum 3s fill time check (anti-bot)
  * 
- * ARCHITECTURE: Uses tRPC for database persistence
+ * ARCHITECTURE: Uses direct Supabase SDK for database persistence
+ * - Captures all UTM parameters and ad platform click IDs
+ * - Writes to user's Supabase project (not Manus MySQL)
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -23,7 +25,7 @@ import { ScanLine, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { trpc } from '@/lib/trpc';
+import { createLead, captureUTMParams } from '@/lib/supabase';
 import type { LeadFormData } from '@/types/vault';
 import { pushDL } from '@/lib/tracking';
 import { getStoredAttribution } from '@/hooks/useAttribution';
@@ -41,7 +43,7 @@ interface LeadCaptureStepProps {
  * Save lead to localStorage for session persistence
  */
 function saveLeadToLocalStorage(
-  leadId: number,
+  leadId: string,
   formData: LeadFormData,
   eventId: string,
   attribution: ReturnType<typeof getStoredAttribution>
@@ -74,16 +76,6 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
   const [error, setError] = useState<string | null>(null);
   const [submitAttempts, setSubmitAttempts] = useState(0);
   const formStartTime = useRef(Date.now());
-
-  // tRPC mutation for creating/upserting leads
-  const upsertLeadMutation = trpc.leads.upsert.useMutation({
-    onSuccess: (result) => {
-      console.log('[LeadCapture] Lead upserted successfully:', result.lead?.id);
-    },
-    onError: (error) => {
-      console.error('[LeadCapture] tRPC upsert error:', error.message);
-    },
-  });
 
   // Track form start
   useEffect(() => {
@@ -147,47 +139,80 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
     setSubmitAttempts(prev => prev + 1);
 
     try {
-      // Get attribution data
-      const attribution = getStoredAttribution();
+      // Get attribution data from both sources
+      const storedAttribution = getStoredAttribution();
+      const urlParams = captureUTMParams();
 
-      // Create/upsert lead via tRPC
-      const result = await upsertLeadMutation.mutateAsync({
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
+      // Merge attribution (URL params take precedence)
+      const attribution = {
+        utm_source: urlParams.utm_source || storedAttribution.utm_source,
+        utm_medium: urlParams.utm_medium || storedAttribution.utm_medium,
+        utm_campaign: urlParams.utm_campaign || storedAttribution.utm_campaign,
+        utm_term: urlParams.utm_term || storedAttribution.utm_term,
+        utm_content: urlParams.utm_content || storedAttribution.utm_content,
+        gclid: urlParams.gclid || storedAttribution.gclid,
+        msclkid: urlParams.msclkid,
+        fbclid: urlParams.fbclid || storedAttribution.fbclid,
+        ttclid: urlParams.ttclid,
+        li_fat_id: urlParams.li_fat_id,
+        referrer: urlParams.referrer,
+        landing_page: urlParams.landing_page,
+      };
+
+      // Create lead via direct Supabase SDK
+      // Using exact column names from user's Supabase schema
+      const { data: result, error: supabaseError } = await createLead({
+        // Core contact - using separate first_name/last_name AND combined name
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
+        name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
         email: formData.email.trim().toLowerCase(),
-        zip: formData.zip?.trim() || undefined,
-        eventId,
-        sourceTool: 'ai_scanner',
-        utmSource: attribution.utm_source || undefined,
-        utmMedium: attribution.utm_medium || undefined,
-        utmCampaign: attribution.utm_campaign || undefined,
-        utmTerm: attribution.utm_term || undefined,
-        utmContent: attribution.utm_content || undefined,
-        fbclid: attribution.fbclid || undefined,
-        gclid: attribution.gclid || undefined,
-        fbp: attribution.fbp || undefined,
-        fbc: attribution.fbc || undefined,
+        zip: formData.zip?.trim() || undefined,  // Note: column is 'zip' not 'zip_code'
+        
+        // Session tracking
+        event_id: eventId,
+        client_user_agent: navigator.userAgent,
+        
+        // UTM & Attribution
+        utm_source: attribution.utm_source,
+        utm_medium: attribution.utm_medium,
+        utm_campaign: attribution.utm_campaign,
+        utm_term: attribution.utm_term,
+        utm_content: attribution.utm_content,
+        gclid: attribution.gclid,
+        msclkid: attribution.msclkid,
+        fbclid: attribution.fbclid,
+        landing_page: attribution.landing_page,
+        
+        // Source tracking
+        source_tool: 'windowman-vault',
+        source_form: 'lead-capture-modal',
+        source_page: window.location.pathname,
+        
+        // Initial status
+        status: 'new',
+        lead_status: 'new',
       });
 
-      if (!result.lead?.id) {
-        throw new Error('Failed to create lead - no ID returned');
+      if (supabaseError || !result?.id) {
+        throw supabaseError || new Error('Failed to create lead - no ID returned');
       }
 
-      const leadId = result.lead.id;
+      const leadId = result.id;
 
       // Save to localStorage for session persistence
-      saveLeadToLocalStorage(leadId, formData, eventId, attribution);
+      saveLeadToLocalStorage(leadId, formData, eventId, storedAttribution);
 
       // Fire analytics event
       pushDL({
         event: 'lead_capture_completed',
         event_id: eventId,
-        lead_id: String(leadId),
+        lead_id: leadId,
         has_zip: !!formData.zip,
       });
 
       // Success - pass database ID to parent
-      onSuccess(String(leadId), formData);
+      onSuccess(leadId, formData);
 
     } catch (err) {
       console.error('[LeadCapture] Submit error:', err);
