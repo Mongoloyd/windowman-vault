@@ -236,7 +236,7 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-gray-300">Email Address</Label>
+          <Label htmlFor="email" className="text-gray-300">Email</Label>
           <Input
             id="email"
             type="email"
@@ -251,7 +251,7 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
 
         <div className="space-y-2">
           <Label htmlFor="zip" className="text-gray-300">
-            ZIP Code <span className="text-gray-500">(optional)</span>
+            ZIP Code
           </Label>
           <Input
             id="zip"
