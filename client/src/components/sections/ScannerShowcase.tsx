@@ -40,9 +40,8 @@ export function ScannerShowcase({ onGetScan }: ScannerShowcaseProps) {
             Upload Your Quote.{" "}
             <span className="text-gradient-cyan">Get the Truth.</span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Our proprietary AI analyzes every line item against our database of 10,000+ 
-            real installations. Detect overcharges, missing specs, and red flags in seconds.
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto" style={{color: '#fafafa', width: '660px'}}>
+            Stop Wondering. Upload a Photo of Your Quote/Estimate and Let our AI Flag Hidden Risks, Missing Scope, and Overpricing — Instantly. Feel Confident In Your Project.
           </p>
         </motion.div>
 
