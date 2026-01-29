@@ -19,7 +19,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ScanLine, Shield, Lock, Zap, ArrowRight, Loader2 } from 'lucide-react';
+import { ScanLine, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -295,21 +295,6 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
           )}
         </Button>
 
-        {/* Trust signals */}
-        <div className="flex items-center justify-center gap-6 pt-4 text-xs text-gray-500">
-          <div className="flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5" />
-            <span>256-bit SSL</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Shield className="w-3.5 h-3.5" />
-            <span>Never Shared</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Zap className="w-3.5 h-3.5" />
-            <span>Instant Results</span>
-          </div>
-        </div>
       </form>
     </motion.div>
   );
