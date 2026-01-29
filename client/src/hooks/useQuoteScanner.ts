@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { sendEdgeFunctionRequest, AI_TIMEOUTS } from '@/lib/supabase';
+import { analyzeQuote, AI_TIMEOUTS } from '@/lib/supabase';
 
 export interface QuoteAnalysisResult {
   overallScore: number;
@@ -22,7 +22,7 @@ interface UseQuoteScannerReturn {
   error: string | null;
   
   // Actions
-  analyzeQuote: (file: File, openingCount?: number, areaName?: string) => Promise<void>;
+  analyzeQuoteFile: (file: File, openingCount?: number, areaName?: string) => Promise<void>;
   resetScanner: () => void;
 }
 
@@ -94,43 +94,46 @@ export function useQuoteScanner(): UseQuoteScannerReturn {
   const [analysisResult, setAnalysisResult] = useState<QuoteAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const analyzeQuote = useCallback(async (file: File, openingCount?: number, areaName?: string) => {
+  const analyzeQuoteFile = useCallback(async (file: File, openingCount?: number, areaName?: string) => {
     setIsAnalyzing(true);
     setError(null);
     setAnalysisResult(null);
     
     try {
+      console.log('[useQuoteScanner] Starting analysis with client-side Gemini...');
+      
       // Compress/prepare image
       const { base64, mimeType } = await compressImage(file);
       
-      const { data, error: requestError } = await sendEdgeFunctionRequest<QuoteAnalysisResult & { error?: string }>(
-        'quote-scanner',
-        {
-          mode: 'analyze',
-          imageBase64: base64,
-          mimeType: mimeType,
-          openingCount: openingCount || undefined,
-          areaName: areaName || 'Florida',
-        },
-        AI_TIMEOUTS.HEAVY
-      );
+      // Use client-side Gemini analysis (no Edge Functions)
+      const { data, error: analysisError } = await analyzeQuote(base64, mimeType);
       
-      if (requestError) throw requestError;
+      if (analysisError) throw analysisError;
       
-      if (data?.error) {
-        throw new Error(data.error);
+      if (!data) {
+        throw new Error('No analysis result returned');
       }
       
       // Add timestamp and save
       const resultWithTimestamp: QuoteAnalysisResult = {
-        ...data!,
+        overallScore: data.overallScore,
+        safetyScore: data.safetyScore,
+        scopeScore: data.scopeScore,
+        priceScore: data.priceScore,
+        finePrintScore: data.finePrintScore,
+        warrantyScore: data.warrantyScore,
+        pricePerOpening: data.pricePerOpening || 'N/A',
+        warnings: data.warnings,
+        missingItems: data.missingItems,
+        summary: data.summary || '',
         analyzedAt: new Date().toISOString(),
       };
       
       setAnalysisResult(resultWithTimestamp);
+      console.log('[useQuoteScanner] Analysis complete:', resultWithTimestamp);
       
     } catch (err) {
-      console.error('Quote analysis error:', err);
+      console.error('[useQuoteScanner] Quote analysis error:', err);
       const message = err instanceof Error ? err.message : 'Analysis failed. Please try again.';
       setError(message);
     } finally {
@@ -147,7 +150,7 @@ export function useQuoteScanner(): UseQuoteScannerReturn {
     isAnalyzing,
     analysisResult,
     error,
-    analyzeQuote,
+    analyzeQuoteFile,
     resetScanner,
   };
 }
