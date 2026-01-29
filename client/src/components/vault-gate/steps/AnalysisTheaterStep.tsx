@@ -28,7 +28,7 @@ interface AnalysisTheaterStepProps {
   onComplete: (results: ScanResult) => void;
   onError: (error: string) => void;
   analyzeQuote: (
-    imageBase64: string,
+    fileName: string,
     mimeType: string,
     leadId?: string,
     eventId?: string
@@ -57,21 +57,9 @@ export function AnalysisTheaterStep({
 
     const runAnalysis = async () => {
       try {
-        // Convert file to base64
-        const reader = new FileReader();
-        const base64Promise = new Promise<string>((resolve, reject) => {
-          reader.onload = () => {
-            const result = reader.result as string;
-            // Remove data URL prefix (e.g., "data:image/png;base64,")
-            const base64 = result.split(',')[1];
-            resolve(base64);
-          };
-          reader.onerror = reject;
-        });
-        reader.readAsDataURL(file);
-        const imageBase64 = await base64Promise;
-        
-        const { data, error } = await analyzeQuote(imageBase64, file.type, leadId, eventId);
+        // Use storage-first approach: upload file to S3 via tRPC, then analyze from URL
+        // The analyzeQuote function now expects a URL, not Base64
+        const { data, error } = await analyzeQuote(file.name, file.type, leadId, eventId);
         
         if (error) {
           throw error;
