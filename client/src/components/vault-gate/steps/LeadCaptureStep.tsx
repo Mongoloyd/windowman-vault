@@ -188,7 +188,7 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
           Unmask the Truth <span className="text-cyan-400">Hiding in Your Quote</span>
         </h2>
         <p className="text-gray-400 max-w-md mx-auto" style={{color: '#dbdbdb'}}>
-          Stop Wondering. Upload Your Estimate and Let AI Flag Hidden Risks and Overpricing Instantly.
+          Stop Wondering. Upload Your Quote/Estimate and Let our AI Flag Hidden Risks, Missing Scope, Fair Pricing & More. Feel Confident In Your Project
         </p>
       </div>
 
