@@ -14,7 +14,7 @@
  * - Form values preserved on error
  * - Minimum 3s fill time check (anti-bot)
  * 
- * PHASE 3A: localStorage persistence (bypass Supabase RLS)
+ * ARCHITECTURE: Uses tRPC for database persistence
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -23,11 +23,12 @@ import { ScanLine, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { trpc } from '@/lib/trpc';
 import type { LeadFormData } from '@/types/vault';
 import { pushDL } from '@/lib/tracking';
 import { getStoredAttribution } from '@/hooks/useAttribution';
 
-// localStorage key for lead data
+// localStorage key for lead data (backup/session resume)
 const VAULT_LEAD_KEY = 'vault_lead_data';
 
 interface LeadCaptureStepProps {
@@ -37,16 +38,14 @@ interface LeadCaptureStepProps {
 }
 
 /**
- * Save lead to localStorage (Phase 3A: bypass Supabase)
+ * Save lead to localStorage for session persistence
  */
 function saveLeadToLocalStorage(
+  leadId: number,
   formData: LeadFormData,
   eventId: string,
   attribution: ReturnType<typeof getStoredAttribution>
-): string {
-  // Generate a local lead ID
-  const leadId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+): void {
   const leadData = {
     id: leadId,
     first_name: formData.firstName.trim(),
@@ -61,8 +60,6 @@ function saveLeadToLocalStorage(
   
   localStorage.setItem(VAULT_LEAD_KEY, JSON.stringify(leadData));
   console.log('[LeadCapture] Lead saved to localStorage:', leadId);
-  
-  return leadId;
 }
 
 export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptureStepProps) {
@@ -77,6 +74,16 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
   const [error, setError] = useState<string | null>(null);
   const [submitAttempts, setSubmitAttempts] = useState(0);
   const formStartTime = useRef(Date.now());
+
+  // tRPC mutation for creating/upserting leads
+  const upsertLeadMutation = trpc.leads.upsert.useMutation({
+    onSuccess: (result) => {
+      console.log('[LeadCapture] Lead upserted successfully:', result.lead?.id);
+    },
+    onError: (error) => {
+      console.error('[LeadCapture] tRPC upsert error:', error.message);
+    },
+  });
 
   // Track form start
   useEffect(() => {
@@ -143,22 +150,44 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
       // Get attribution data
       const attribution = getStoredAttribution();
 
-      // PHASE 3A: Save to localStorage instead of Supabase
-      const leadId = saveLeadToLocalStorage(formData, eventId, attribution);
+      // Create/upsert lead via tRPC
+      const result = await upsertLeadMutation.mutateAsync({
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim().toLowerCase(),
+        zip: formData.zip?.trim() || undefined,
+        eventId,
+        sourceTool: 'ai_scanner',
+        utmSource: attribution.utm_source || undefined,
+        utmMedium: attribution.utm_medium || undefined,
+        utmCampaign: attribution.utm_campaign || undefined,
+        utmTerm: attribution.utm_term || undefined,
+        utmContent: attribution.utm_content || undefined,
+        fbclid: attribution.fbclid || undefined,
+        gclid: attribution.gclid || undefined,
+        fbp: attribution.fbp || undefined,
+        fbc: attribution.fbc || undefined,
+      });
+
+      if (!result.lead?.id) {
+        throw new Error('Failed to create lead - no ID returned');
+      }
+
+      const leadId = result.lead.id;
+
+      // Save to localStorage for session persistence
+      saveLeadToLocalStorage(leadId, formData, eventId, attribution);
 
       // Fire analytics event
       pushDL({
         event: 'lead_capture_completed',
         event_id: eventId,
-        lead_id: leadId,
+        lead_id: String(leadId),
         has_zip: !!formData.zip,
       });
 
-      // Simulate brief network delay for UX
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Success - pass to parent
-      onSuccess(leadId, formData);
+      // Success - pass database ID to parent
+      onSuccess(String(leadId), formData);
 
     } catch (err) {
       console.error('[LeadCapture] Submit error:', err);
@@ -206,6 +235,7 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
           />
         </div>
 
+        {/* Name Fields */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="firstName" className="text-gray-300">First Name</Label>
@@ -215,9 +245,8 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
               placeholder="John"
               value={formData.firstName}
               onChange={handleChange('firstName')}
-              className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+              className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20"
               required
-              disabled={isSubmitting}
             />
           </div>
           <div className="space-y-2">
@@ -228,9 +257,8 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
               placeholder="Smith"
               value={formData.lastName}
               onChange={handleChange('lastName')}
-              className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+              className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20"
               required
-              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -243,9 +271,8 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
             placeholder="john@example.com"
             value={formData.email}
             onChange={handleChange('email')}
-            className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+            className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20"
             required
-            disabled={isSubmitting}
           />
         </div>
 
@@ -259,13 +286,11 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
             placeholder="33101"
             value={formData.zip}
             onChange={handleChange('zip')}
-            className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
-            maxLength={10}
-            disabled={isSubmitting}
+            className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20"
           />
         </div>
 
-        {/* Error message */}
+        {/* Error Message */}
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -276,25 +301,24 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
           </motion.div>
         )}
 
-        {/* Submit button */}
+        {/* Submit Button */}
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full h-12 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-white font-semibold text-lg shadow-lg shadow-cyan-500/25 transition-all duration-300"
+          className="w-full bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-600 hover:to-emerald-600 text-white font-semibold py-6 text-lg shadow-lg shadow-cyan-500/25 transition-all duration-300"
         >
           {isSubmitting ? (
             <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Securing Access...
+              Securing Your Access...
             </>
           ) : (
             <>
-              Get My Free Analysis
+              Get My Free Quote Analysis
               <ArrowRight className="w-5 h-5 ml-2" />
             </>
           )}
         </Button>
-
       </form>
     </motion.div>
   );

@@ -14,3 +14,6 @@
 - [x] Remove unused Supabase client functions
 - [x] Remove @supabase/supabase-js dependency
 - [ ] Test end-to-end flow with tRPC
+
+## Bug Fixes
+- [x] Fix leadId mismatch - local session IDs vs database IDs
