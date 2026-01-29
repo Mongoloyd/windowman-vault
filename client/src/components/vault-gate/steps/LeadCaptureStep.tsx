@@ -203,12 +203,15 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
       // Save to localStorage for session persistence
       saveLeadToLocalStorage(leadId, formData, eventId, storedAttribution);
 
-      // Fire analytics event
+      // Fire analytics event - GA4 conversion tracking
       pushDL({
-        event: 'lead_capture_completed',
+        event: 'lead_capture_success',
         event_id: eventId,
         lead_id: leadId,
         has_zip: !!formData.zip,
+        email: formData.email.trim().toLowerCase(),
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
       });
 
       // Success - pass database ID to parent

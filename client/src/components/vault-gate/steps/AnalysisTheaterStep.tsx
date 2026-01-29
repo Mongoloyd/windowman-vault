@@ -33,6 +33,7 @@ import {
   upsertWMLead,
   updateLead 
 } from '@/lib/supabase';
+import { pushDL } from '@/lib/tracking';
 
 interface AnalysisTheaterStepProps {
   eventId: string;
@@ -152,6 +153,22 @@ export function AnalysisTheaterStep({
           estimated_deal_value: estimatedDealValue,
           status: 'new',
           original_source_tool: 'vault_scanner',
+        });
+
+        // Fire GA4 conversion event - quote_scan_complete
+        // estimatedSavings is { low: number, high: number } - use the average
+        const savingsOpportunity = scanResult.estimatedSavings 
+          ? Math.round((scanResult.estimatedSavings.low + scanResult.estimatedSavings.high) / 2)
+          : Math.round((100 - scanResult.overallScore) * 150); // Rough estimate based on score
+        
+        pushDL({
+          event: 'quote_scan_complete',
+          event_id: eventId,
+          lead_id: leadId,
+          overall_score: scanResult.overallScore,
+          savings_opportunity: savingsOpportunity,
+          warning_count: scanResult.warnings?.length || 0,
+          missing_items_count: scanResult.missingItems?.length || 0,
         });
 
         // Store result for progress animation completion

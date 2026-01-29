@@ -49,3 +49,10 @@
 - [x] Fix upsertWMLead insert error - check wm_leads table schema
 - [x] Fix createScan Supabase error - check scans table schema
 - [x] Fix invalid leadId for update error in VaultLeadGateModal
+
+
+## GA4/GTM Integration (Jan 29)
+- [x] Add GTM script tags to index.html (GTM-T39N8QHT) in head and body (already present)
+- [x] Verify lead_capture_success event in LeadCaptureStep with lead_id
+- [x] Verify quote_scan_complete event in AnalysisTheaterStep with overall_score and savings_opportunity
+- [x] Provide console verification command for GTM container
