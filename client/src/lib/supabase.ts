@@ -462,7 +462,8 @@ export async function sendMagicLink(
 
 
 /**
- * Analyze a quote image using the AI scanner edge function
+ * Analyze a quote image using client-side Gemini AI
+ * (Ported from Edge Function to run directly in browser)
  */
 export async function analyzeQuote(
   imageBase64: string,
@@ -470,20 +471,58 @@ export async function analyzeQuote(
   leadId?: string,
   eventId?: string
 ): Promise<{ data: QuoteScanResult | null; error: Error | null }> {
-  const { data, error } = await sendEdgeFunctionRequest<QuoteScanResult>(
-    'quote-scanner',
-    {
-      mode: 'analyze',
-      imageBase64,
-      mimeType,
-      areaName: 'Florida', // Default to Florida for now
-      lead_id: leadId,
-      event_id: eventId,
-    },
-    AI_TIMEOUTS.HEAVY
-  );
-
-  return { data, error };
+  try {
+    // Import the scanner engine dynamically to avoid circular deps
+    const { analyzeQuoteFromBase64 } = await import('./scannerEngine');
+    
+    const result = await analyzeQuoteFromBase64(imageBase64, mimeType);
+    
+    // Map AnalysisData to QuoteScanResult format
+    const scanResult: QuoteScanResult = {
+      overallScore: result.overallScore,
+      safetyScore: result.safetyScore,
+      scopeScore: result.scopeScore,
+      priceScore: result.priceScore,
+      finePrintScore: result.finePrintScore,
+      warrantyScore: result.warrantyScore,
+      warnings: result.warnings,
+      missingItems: result.missingItems,
+      summary: result.summary,
+      pricePerOpening: result.pricePerOpening,
+      rawResult: result.rawSignals as unknown as Record<string, unknown>,
+    };
+    
+    // Optionally save to database if leadId provided
+    if (leadId) {
+      try {
+        await supabase.from('scans').insert({
+          lead_id: leadId,
+          overall_score: result.overallScore,
+          safety_score: result.safetyScore,
+          scope_score: result.scopeScore,
+          price_score: result.priceScore,
+          fine_print_score: result.finePrintScore,
+          warranty_score: result.warrantyScore,
+          price_per_opening: result.pricePerOpening,
+          warnings: result.warnings,
+          missing_items: result.missingItems,
+          summary: result.summary,
+          raw_signals: result.rawSignals,
+        });
+      } catch (dbError) {
+        console.warn('[analyzeQuote] Failed to save scan to database:', dbError);
+        // Don't fail the whole operation if DB save fails
+      }
+    }
+    
+    return { data: scanResult, error: null };
+  } catch (err) {
+    console.error('[analyzeQuote] Client-side analysis error:', err);
+    return { 
+      data: null, 
+      error: err instanceof Error ? err : new Error(String(err)) 
+    };
+  }
 }
 
 /**
@@ -498,6 +537,8 @@ export interface QuoteScanResult {
   warrantyScore: number;
   warnings: string[];
   missingItems: string[];
+  summary?: string;
+  pricePerOpening?: string;
   estimatedSavings?: {
     low: number;
     high: number;
