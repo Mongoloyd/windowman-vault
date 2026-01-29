@@ -643,12 +643,19 @@ export function getMockAnalysis(): AnalysisData {
 // MODEL CONFIGURATION
 // ============================================
 
-// Primary: Gemini 3 Pro for PhD-level reasoning accuracy
-// - Best at finding "invisible" data (missing permits, warranty traps)
-// - 30+ second latency is acceptable for accuracy
-// Fallback: Gemini 2.5 Pro (stable) if 3.0 unavailable
-const PRIMARY_MODEL = 'gemini-3-pro-preview';
-const FALLBACK_MODEL = 'gemini-2.5-pro';
+// 3-tier fallback chain for maximum reliability:
+// 1. Gemini 2.5 Pro - Best reasoning (paid tier)
+// 2. Gemini 2.0 Flash - Good balance of speed/quality
+// 3. Gemini 1.5 Flash - Highest free tier limits
+const MODEL_CHAIN = [
+  'gemini-2.5-pro',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+] as const;
+
+// Legacy exports for compatibility
+const PRIMARY_MODEL = MODEL_CHAIN[0];
+const FALLBACK_MODEL = MODEL_CHAIN[1];
 
 // Error classification for debugging
 function classifyGeminiError(error: unknown): string {
@@ -694,92 +701,67 @@ export async function analyzeQuoteFromUrl(
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  
-  // Build the user prompt
   const userPrompt = buildUserPrompt(openingCountHint, areaName);
 
-  // Try primary model first, fallback if needed
-  let result;
-  let modelUsed = PRIMARY_MODEL;
+  // Fetch image once and convert to base64
+  const imageResponse = await fetch(imageUrl);
+  const imageBlob = await imageResponse.blob();
+  const base64Data = await blobToBase64(imageBlob);
+
+  // Try each model in the chain until one succeeds
+  let lastError: Error | null = null;
   
-  try {
-    console.log(`[ScannerEngine] Attempting Deep Audit with ${PRIMARY_MODEL} (thinkingLevel: high)...`);
-    
-    // Gemini 3 Pro with high thinking level for PhD-level reasoning
-    const model = genAI.getGenerativeModel({
-      model: PRIMARY_MODEL,
-      generationConfig: {
-        responseMimeType: 'application/json',
-        // @ts-expect-error - thinkingLevel is a new Gemini 3 feature
-        thinkingLevel: 'high',
-      },
-    });
-    
-    // Fetch image and convert to base64 for Gemini
-    const imageResponse = await fetch(imageUrl);
-    const imageBlob = await imageResponse.blob();
-    const base64Data = await blobToBase64(imageBlob);
-    
-    result = await model.generateContent([
-      { text: EXTRACTION_RUBRIC },
-      { text: userPrompt },
-      {
-        inlineData: {
-          mimeType,
-          data: base64Data,
+  for (const modelName of MODEL_CHAIN) {
+    try {
+      console.log(`[ScannerEngine] Attempting analysis with ${modelName}...`);
+      
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          responseMimeType: 'application/json',
         },
-      },
-    ]);
-  } catch (primaryError) {
-    // Detailed error logging for debugging
-    const errorClassification = classifyGeminiError(primaryError);
-    console.error(`[ScannerEngine] ❌ ${PRIMARY_MODEL} FAILED`);
-    console.error(`[ScannerEngine] Error Classification: ${errorClassification}`);
-    console.error(`[ScannerEngine] Raw Error:`, primaryError);
-    console.warn(`[ScannerEngine] Falling back to ${FALLBACK_MODEL}...`);
-    
-    modelUsed = FALLBACK_MODEL;
-    
-    const fallbackModel = genAI.getGenerativeModel({
-      model: FALLBACK_MODEL,
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-    });
-    
-    // Fetch image and convert to base64 for Gemini
-    const imageResponse = await fetch(imageUrl);
-    const imageBlob = await imageResponse.blob();
-    const base64Data = await blobToBase64(imageBlob);
-    
-    result = await fallbackModel.generateContent([
-      { text: EXTRACTION_RUBRIC },
-      { text: userPrompt },
-      {
-        inlineData: {
-          mimeType,
-          data: base64Data,
+      });
+      
+      const result = await model.generateContent([
+        { text: EXTRACTION_RUBRIC },
+        { text: userPrompt },
+        {
+          inlineData: {
+            mimeType,
+            data: base64Data,
+          },
         },
-      },
-    ]);
+      ]);
+
+      console.log(`[ScannerEngine] ✅ Analysis completed with ${modelName}`);
+      
+      const response = result.response;
+      const text = response.text();
+      
+      let signals: ExtractionSignals;
+      try {
+        signals = JSON.parse(text);
+      } catch {
+        console.error('[ScannerEngine] Failed to parse Gemini response:', text);
+        throw new Error('Failed to parse AI response. Please try again.');
+      }
+
+      return scoreFromSignals(signals, openingCountHint ?? null);
+      
+    } catch (error) {
+      const errorClassification = classifyGeminiError(error);
+      console.error(`[ScannerEngine] ❌ ${modelName} FAILED`);
+      console.error(`[ScannerEngine] Error Classification: ${errorClassification}`);
+      console.error(`[ScannerEngine] Raw Error:`, error);
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // Continue to next model in chain
+      continue;
+    }
   }
 
-  console.log(`[ScannerEngine] Analysis completed with ${modelUsed}`);
-  
-  const response = result.response;
-  const text = response.text();
-  
-  let signals: ExtractionSignals;
-  try {
-    signals = JSON.parse(text);
-  } catch {
-    console.error('[ScannerEngine] Failed to parse Gemini response:', text);
-    throw new Error('Failed to parse AI response. Please try again.');
-  }
-
-  const analysisData = scoreFromSignals(signals, openingCountHint ?? null);
-  
-  return analysisData;
+  // All models failed
+  throw lastError || new Error('All Gemini models failed. Please try again later.');
 }
 
 // ============================================
@@ -799,81 +781,62 @@ export async function analyzeQuoteFromBase64(
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  
   const userPrompt = buildUserPrompt(openingCountHint, areaName);
 
-  // Try primary model first, fallback if needed
-  let result;
-  let modelUsed = PRIMARY_MODEL;
+  // Try each model in the chain until one succeeds
+  let lastError: Error | null = null;
   
-  try {
-    console.log(`[ScannerEngine] Attempting Deep Audit with ${PRIMARY_MODEL} (thinkingLevel: high)...`);
-    
-    // Gemini 3 Pro with high thinking level for PhD-level reasoning
-    const model = genAI.getGenerativeModel({
-      model: PRIMARY_MODEL,
-      generationConfig: {
-        responseMimeType: 'application/json',
-        // @ts-expect-error - thinkingLevel is a new Gemini 3 feature
-        thinkingLevel: 'high',
-      },
-    });
-    
-    result = await model.generateContent([
-      { text: EXTRACTION_RUBRIC },
-      { text: userPrompt },
-      {
-        inlineData: {
-          mimeType,
-          data: base64Data,
+  for (const modelName of MODEL_CHAIN) {
+    try {
+      console.log(`[ScannerEngine] Attempting analysis with ${modelName}...`);
+      
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          responseMimeType: 'application/json',
         },
-      },
-    ]);
-  } catch (primaryError) {
-    // Detailed error logging for debugging
-    const errorClassification = classifyGeminiError(primaryError);
-    console.error(`[ScannerEngine] ❌ ${PRIMARY_MODEL} FAILED`);
-    console.error(`[ScannerEngine] Error Classification: ${errorClassification}`);
-    console.error(`[ScannerEngine] Raw Error:`, primaryError);
-    console.warn(`[ScannerEngine] Falling back to ${FALLBACK_MODEL}...`);
-    
-    modelUsed = FALLBACK_MODEL;
-    
-    const fallbackModel = genAI.getGenerativeModel({
-      model: FALLBACK_MODEL,
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-    });
-    
-    result = await fallbackModel.generateContent([
-      { text: EXTRACTION_RUBRIC },
-      { text: userPrompt },
-      {
-        inlineData: {
-          mimeType,
-          data: base64Data,
+      });
+      
+      const result = await model.generateContent([
+        { text: EXTRACTION_RUBRIC },
+        { text: userPrompt },
+        {
+          inlineData: {
+            mimeType,
+            data: base64Data,
+          },
         },
-      },
-    ]);
+      ]);
+
+      console.log(`[ScannerEngine] ✅ Analysis completed with ${modelName}`);
+      
+      const response = result.response;
+      const text = response.text();
+      
+      let signals: ExtractionSignals;
+      try {
+        signals = JSON.parse(text);
+      } catch {
+        console.error('[ScannerEngine] Failed to parse Gemini response:', text);
+        throw new Error('Failed to parse AI response. Please try again.');
+      }
+
+      return scoreFromSignals(signals, openingCountHint ?? null);
+      
+    } catch (error) {
+      const errorClassification = classifyGeminiError(error);
+      console.error(`[ScannerEngine] ❌ ${modelName} FAILED`);
+      console.error(`[ScannerEngine] Error Classification: ${errorClassification}`);
+      console.error(`[ScannerEngine] Raw Error:`, error);
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // Continue to next model in chain
+      continue;
+    }
   }
 
-  console.log(`[ScannerEngine] Deep Audit completed with ${modelUsed}`);
-  
-  const response = result.response;
-  const text = response.text();
-  
-  let signals: ExtractionSignals;
-  try {
-    signals = JSON.parse(text);
-  } catch {
-    console.error('[ScannerEngine] Failed to parse Gemini response:', text);
-    throw new Error('Failed to parse AI response. Please try again.');
-  }
-
-  const analysisData = scoreFromSignals(signals, openingCountHint ?? null);
-  
-  return analysisData;
+  // All models failed
+  throw lastError || new Error('All Gemini models failed. Please try again later.');
 }
 
 // ============================================
