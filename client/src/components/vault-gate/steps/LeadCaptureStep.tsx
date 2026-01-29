@@ -187,8 +187,8 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
           Unlock Your <span className="text-cyan-400">Protection Report</span>
         </h2>
-        <p className="text-gray-400 max-w-md mx-auto">
-          Get instant access to AI-powered quote analysis and join 10,000+ Florida homeowners who've saved an average of $11,760.
+        <p className="text-gray-400 max-w-md mx-auto" style={{color: '#dbdbdb'}}>
+          Stop Wondering. Upload Your Estimate and Let AI Flag Hidden Risks and Overpricing Instantly.
         </p>
       </div>
 
