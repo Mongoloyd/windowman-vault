@@ -19,7 +19,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Lock, Zap, ArrowRight, Loader2 } from 'lucide-react';
+import { ScanLine, Shield, Lock, Zap, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -181,11 +181,11 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
       {/* Header */}
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 mb-4">
-          <Shield className="w-4 h-4 text-cyan-400" />
-          <span className="text-sm text-cyan-400 font-medium">Secure Access</span>
+          <ScanLine className="w-4 h-4 text-cyan-400" />
+          <span className="text-sm text-cyan-400 font-medium">Powered by Gemini 3 Flash</span>
         </div>
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
-          Unlock Your <span className="text-cyan-400">Protection Report</span>
+          Unmask the Truth <span className="text-cyan-400">Hiding in Your Quote</span>
         </h2>
         <p className="text-gray-400 max-w-md mx-auto" style={{color: '#dbdbdb'}}>
           Stop Wondering. Upload Your Estimate and Let AI Flag Hidden Risks and Overpricing Instantly.
