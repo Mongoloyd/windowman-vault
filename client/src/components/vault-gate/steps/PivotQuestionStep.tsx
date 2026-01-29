@@ -91,8 +91,8 @@ export function PivotQuestionStep({ eventId, leadId, firstName, onYes, onNo }: P
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
           Welcome, <span className="text-cyan-400">{firstName}</span>!
         </h2>
-        <p className="text-gray-400 max-w-md mx-auto">
-          Let's get you protected. Do you have a contractor estimate ready to scan?
+        <p className="text-gray-400 max-w-md mx-auto" style={{color: '#e4e2e2'}}>
+          Do You Have an Estimate Ready to Analyze, or You Plan to Soon?
         </p>
       </div>
 
@@ -123,10 +123,10 @@ export function PivotQuestionStep({ eventId, leadId, firstName, onYes, onNo }: P
             <div className="p-2 rounded-lg bg-cyan-500/20">
               <FileText className="w-6 h-6 text-cyan-400" />
             </div>
-            <span className="text-lg font-semibold text-white">Yes, I have one</span>
+            <span className="text-lg font-semibold text-white">Yes, Audit My Quote</span>
           </div>
-          <p className="text-gray-400 text-sm">
-            Upload your estimate and get an instant AI analysis with savings potential.
+          <p className="text-gray-400 text-sm" style={{color: '#e3e3e3'}}>
+            To Instantly Reveal All The Things You Didn't Know You Needed To.
           </p>
           <div className="mt-4 flex items-center gap-2 text-cyan-400 text-sm font-medium">
             <span>Scan My Quote</span>
@@ -159,9 +159,9 @@ export function PivotQuestionStep({ eventId, leadId, firstName, onYes, onNo }: P
             <div className="p-2 rounded-lg bg-emerald-500/20">
               <Shield className="w-6 h-6 text-emerald-400" />
             </div>
-            <span className="text-lg font-semibold text-white">Not yet</span>
+            <span className="text-lg font-semibold text-white">Get Pre-Audit Guide</span>
           </div>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-400 text-sm" style={{color: '#e3e3e3'}}>
             No problem! Get access to the Vault and be ready when you receive one.
           </p>
           <div className="mt-4 flex items-center gap-2 text-emerald-400 text-sm font-medium">
