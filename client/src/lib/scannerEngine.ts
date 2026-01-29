@@ -643,10 +643,12 @@ export function getMockAnalysis(): AnalysisData {
 // MODEL CONFIGURATION
 // ============================================
 
-// Primary: Gemini 2.5 Pro for maximum reasoning accuracy
-// Fallback: Gemini 1.5 Pro if 2.5 unavailable
-const PRIMARY_MODEL = 'gemini-2.5-pro-preview-05-06';
-const FALLBACK_MODEL = 'gemini-1.5-pro';
+// Primary: Gemini 3 Pro for PhD-level reasoning accuracy
+// - Best at finding "invisible" data (missing permits, warranty traps)
+// - 30+ second latency is acceptable for accuracy
+// Fallback: Gemini 2.5 Pro if 3.0 unavailable
+const PRIMARY_MODEL = 'gemini-3-pro-preview';
+const FALLBACK_MODEL = 'gemini-2.5-pro-preview-05-06';
 
 // ============================================
 // ANALYZE FROM URL (Storage-first approach)
