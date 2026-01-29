@@ -10,7 +10,7 @@
 
 import { motion } from 'framer-motion';
 import { 
-  Upload, Shield, Scan, Lock, Zap, Eye, ArrowRight
+  Upload, Shield, Scan, Zap, ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -97,16 +97,9 @@ export function QuoteScanner({ onGetScan, className }: QuoteScannerProps) {
             {/* NO FILE INPUT HERE - Gated by modal */}
           </div>
 
-          {/* Trust Signals - Instant Audit Results */}
-          <div className="flex items-center justify-center gap-4 mt-4 text-xs text-slate-500">
-            <div className="flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-cyan-400" />
-              <span>256-bit encryption</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Eye className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Never shared with contractors</span>
-            </div>
+          {/* Instant Audit Results */}
+          <div className="flex items-center justify-center mt-4 text-sm text-slate-600 font-medium">
+            Instant Audit Results
           </div>
 
           {/* Primary CTA Button */}
