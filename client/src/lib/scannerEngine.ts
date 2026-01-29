@@ -646,9 +646,36 @@ export function getMockAnalysis(): AnalysisData {
 // Primary: Gemini 3 Pro for PhD-level reasoning accuracy
 // - Best at finding "invisible" data (missing permits, warranty traps)
 // - 30+ second latency is acceptable for accuracy
-// Fallback: Gemini 2.5 Pro if 3.0 unavailable
+// Fallback: Gemini 2.5 Pro (stable) if 3.0 unavailable
 const PRIMARY_MODEL = 'gemini-3-pro-preview';
-const FALLBACK_MODEL = 'gemini-2.5-pro-preview-05-06';
+const FALLBACK_MODEL = 'gemini-2.5-pro';
+
+// Error classification for debugging
+function classifyGeminiError(error: unknown): string {
+  const errorStr = String(error);
+  const errorMessage = error instanceof Error ? error.message : errorStr;
+  
+  if (errorStr.includes('404') || errorMessage.includes('not found')) {
+    return 'MODEL_NOT_FOUND: Model ID may be retired or unavailable in your region';
+  }
+  if (errorStr.includes('403') || errorMessage.includes('permission')) {
+    return 'PERMISSION_DENIED: API key may lack access to this model tier';
+  }
+  if (errorStr.includes('429') || errorMessage.includes('quota') || errorMessage.includes('rate')) {
+    return 'QUOTA_EXCEEDED: Rate limit or quota exceeded - consider upgrading API tier';
+  }
+  if (errorStr.includes('location') || errorMessage.includes('region') || errorMessage.includes('geo')) {
+    return 'LOCATION_NOT_SUPPORTED: Model not available in your geographic region';
+  }
+  if (errorStr.includes('timeout') || errorMessage.includes('deadline')) {
+    return 'TIMEOUT: Request took too long - model may be overloaded';
+  }
+  if (errorStr.includes('500') || errorStr.includes('503')) {
+    return 'SERVER_ERROR: Gemini service temporarily unavailable';
+  }
+  
+  return `UNKNOWN_ERROR: ${errorMessage}`;
+}
 
 // ============================================
 // ANALYZE FROM URL (Storage-first approach)
@@ -676,11 +703,15 @@ export async function analyzeQuoteFromUrl(
   let modelUsed = PRIMARY_MODEL;
   
   try {
-    console.log(`[ScannerEngine] Attempting analysis with ${PRIMARY_MODEL}...`);
+    console.log(`[ScannerEngine] Attempting Deep Audit with ${PRIMARY_MODEL} (thinkingLevel: high)...`);
+    
+    // Gemini 3 Pro with high thinking level for PhD-level reasoning
     const model = genAI.getGenerativeModel({
       model: PRIMARY_MODEL,
       generationConfig: {
         responseMimeType: 'application/json',
+        // @ts-expect-error - thinkingLevel is a new Gemini 3 feature
+        thinkingLevel: 'high',
       },
     });
     
@@ -700,7 +731,13 @@ export async function analyzeQuoteFromUrl(
       },
     ]);
   } catch (primaryError) {
-    console.warn(`[ScannerEngine] ${PRIMARY_MODEL} failed, falling back to ${FALLBACK_MODEL}:`, primaryError);
+    // Detailed error logging for debugging
+    const errorClassification = classifyGeminiError(primaryError);
+    console.error(`[ScannerEngine] ❌ ${PRIMARY_MODEL} FAILED`);
+    console.error(`[ScannerEngine] Error Classification: ${errorClassification}`);
+    console.error(`[ScannerEngine] Raw Error:`, primaryError);
+    console.warn(`[ScannerEngine] Falling back to ${FALLBACK_MODEL}...`);
+    
     modelUsed = FALLBACK_MODEL;
     
     const fallbackModel = genAI.getGenerativeModel({
@@ -770,11 +807,15 @@ export async function analyzeQuoteFromBase64(
   let modelUsed = PRIMARY_MODEL;
   
   try {
-    console.log(`[ScannerEngine] Attempting Deep Audit with ${PRIMARY_MODEL}...`);
+    console.log(`[ScannerEngine] Attempting Deep Audit with ${PRIMARY_MODEL} (thinkingLevel: high)...`);
+    
+    // Gemini 3 Pro with high thinking level for PhD-level reasoning
     const model = genAI.getGenerativeModel({
       model: PRIMARY_MODEL,
       generationConfig: {
         responseMimeType: 'application/json',
+        // @ts-expect-error - thinkingLevel is a new Gemini 3 feature
+        thinkingLevel: 'high',
       },
     });
     
@@ -789,7 +830,13 @@ export async function analyzeQuoteFromBase64(
       },
     ]);
   } catch (primaryError) {
-    console.warn(`[ScannerEngine] ${PRIMARY_MODEL} failed, falling back to ${FALLBACK_MODEL}:`, primaryError);
+    // Detailed error logging for debugging
+    const errorClassification = classifyGeminiError(primaryError);
+    console.error(`[ScannerEngine] ❌ ${PRIMARY_MODEL} FAILED`);
+    console.error(`[ScannerEngine] Error Classification: ${errorClassification}`);
+    console.error(`[ScannerEngine] Raw Error:`, primaryError);
+    console.warn(`[ScannerEngine] Falling back to ${FALLBACK_MODEL}...`);
+    
     modelUsed = FALLBACK_MODEL;
     
     const fallbackModel = genAI.getGenerativeModel({
