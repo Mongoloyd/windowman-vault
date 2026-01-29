@@ -563,13 +563,153 @@ export async function updateLead(
       .eq('id', leadId);
 
     if (error) {
-      console.error('[Supabase] Lead update error:', error);
+      // Full error logging to diagnose RLS issues
+      console.error('[Supabase] Lead update error:', JSON.stringify(error, null, 2));
+      console.error('[Supabase] Lead update context:', { leadId, updates });
       return { error: new ServiceError(error.message) };
     }
 
     return { error: null };
   } catch (err) {
-    console.error('[Supabase] Lead update exception:', err);
+    // Full error logging for catch block
+    console.error('[Supabase] Lead update exception:', JSON.stringify(err, null, 2));
     return { error: err instanceof Error ? err : new Error(String(err)) };
   }
+}
+
+/**
+ * Upload quote image to Supabase Storage (estimates bucket)
+ * Returns the public URL for the uploaded file
+ */
+export async function uploadQuoteToStorage(
+  file: File,
+  leadId: string
+): Promise<{ url: string | null; path: string | null; error: Error | null }> {
+  try {
+    const timestamp = Date.now();
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `${leadId}/${timestamp}.${ext}`;
+    
+    console.log('[Supabase] Uploading quote to storage:', { path, size: file.size, type: file.type });
+    
+    const { data, error } = await supabase.storage
+      .from('estimates')
+      .upload(path, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('[Supabase] Storage upload error:', JSON.stringify(error, null, 2));
+      return { url: null, path: null, error: new ServiceError(error.message) };
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('estimates')
+      .getPublicUrl(data.path);
+
+    console.log('[Supabase] Quote uploaded successfully:', urlData.publicUrl);
+    
+    return { url: urlData.publicUrl, path: data.path, error: null };
+  } catch (err) {
+    console.error('[Supabase] Storage upload exception:', JSON.stringify(err, null, 2));
+    return { url: null, path: null, error: err instanceof Error ? err : new Error(String(err)) };
+  }
+}
+
+/**
+ * Analyze quote using storage-first approach
+ * 1. Upload to Supabase Storage
+ * 2. Pass URL to Gemini (avoids base64 network crashes)
+ * 3. Save results to scans table
+ */
+export async function analyzeQuoteWithStorage(
+  file: File,
+  leadId: string,
+  eventId?: string
+): Promise<{ data: QuoteScanResult | null; quoteUrl: string | null; error: Error | null }> {
+  try {
+    // Step 1: Upload to storage
+    const { url: quoteUrl, path: quotePath, error: uploadError } = await uploadQuoteToStorage(file, leadId);
+    
+    if (uploadError || !quoteUrl) {
+      console.error('[analyzeQuoteWithStorage] Upload failed:', uploadError);
+      // Fallback to base64 if storage fails
+      console.log('[analyzeQuoteWithStorage] Falling back to base64 analysis...');
+      const base64Result = await analyzeQuote(await fileToBase64(file), file.type, leadId, eventId);
+      return { ...base64Result, quoteUrl: null };
+    }
+
+    // Step 2: Analyze with Gemini using URL
+    const { analyzeQuoteFromUrl } = await import('./scannerEngine');
+    const result = await analyzeQuoteFromUrl(quoteUrl, file.type);
+    
+    // Map AnalysisData to QuoteScanResult format
+    const scanResult: QuoteScanResult = {
+      overallScore: result.overallScore,
+      safetyScore: result.safetyScore,
+      scopeScore: result.scopeScore,
+      priceScore: result.priceScore,
+      finePrintScore: result.finePrintScore,
+      warrantyScore: result.warrantyScore,
+      warnings: result.warnings,
+      missingItems: result.missingItems,
+      summary: result.summary,
+      pricePerOpening: result.pricePerOpening,
+      rawResult: result.rawSignals as unknown as Record<string, unknown>,
+    };
+    
+    // Step 3: Save to scans table with quote_url
+    try {
+      const { error: insertError } = await supabase.from('scans').insert({
+        lead_id: leadId,
+        quote_url: quoteUrl,
+        overall_score: result.overallScore,
+        safety_score: result.safetyScore,
+        scope_score: result.scopeScore,
+        price_score: result.priceScore,
+        fine_print_score: result.finePrintScore,
+        warranty_score: result.warrantyScore,
+        price_per_opening: result.pricePerOpening,
+        warnings: result.warnings,
+        missing_items: result.missingItems,
+        summary: result.summary,
+        raw_signals: result.rawSignals,
+      });
+      
+      if (insertError) {
+        console.error('[analyzeQuoteWithStorage] Failed to save scan:', JSON.stringify(insertError, null, 2));
+      } else {
+        console.log('[analyzeQuoteWithStorage] Scan saved to database');
+      }
+    } catch (dbError) {
+      console.warn('[analyzeQuoteWithStorage] Database save failed:', JSON.stringify(dbError, null, 2));
+    }
+    
+    return { data: scanResult, quoteUrl, error: null };
+  } catch (err) {
+    console.error('[analyzeQuoteWithStorage] Analysis error:', JSON.stringify(err, null, 2));
+    return { 
+      data: null, 
+      quoteUrl: null,
+      error: err instanceof Error ? err : new Error(String(err)) 
+    };
+  }
+}
+
+/**
+ * Helper: Convert file to base64
+ */
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }

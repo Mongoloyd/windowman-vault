@@ -93,7 +93,7 @@ export function AnalysisTheaterStep({
 
   // Progress animation
   useEffect(() => {
-    const TOTAL_DURATION = 8000; // 8 seconds total
+    const TOTAL_DURATION = 30000; // 30 seconds for deep audit with Gemini 2.5 Pro
     const STAGE_DURATION = TOTAL_DURATION / THEATER_STAGES.length;
     const TICK_INTERVAL = 50; // Update every 50ms
     const TICKS_PER_STAGE = STAGE_DURATION / TICK_INTERVAL;
@@ -158,13 +158,13 @@ export function AnalysisTheaterStep({
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 mb-4">
           <Shield className="w-4 h-4 text-cyan-400" />
-          <span className="text-sm text-cyan-400 font-medium">AI Analysis in Progress</span>
+          <span className="text-sm text-cyan-400 font-medium">Deep Audit in Progress</span>
         </div>
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
-          Scanning Your Quote
+          Running Deep Audit
         </h2>
         <p className="text-gray-400">
-          Cross-referencing against our database of 10,000+ installations
+          Verifying fine print and Florida code compliance...
         </p>
       </div>
 

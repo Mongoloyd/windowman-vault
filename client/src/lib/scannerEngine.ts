@@ -640,6 +640,110 @@ export function getMockAnalysis(): AnalysisData {
 }
 
 // ============================================
+// MODEL CONFIGURATION
+// ============================================
+
+// Primary: Gemini 2.5 Pro for maximum reasoning accuracy
+// Fallback: Gemini 1.5 Pro if 2.5 unavailable
+const PRIMARY_MODEL = 'gemini-2.5-pro-preview-05-06';
+const FALLBACK_MODEL = 'gemini-1.5-pro';
+
+// ============================================
+// ANALYZE FROM URL (Storage-first approach)
+// ============================================
+
+export async function analyzeQuoteFromUrl(
+  imageUrl: string,
+  mimeType: string,
+  openingCountHint?: number | null,
+  areaName?: string | null
+): Promise<AnalysisData> {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error('Gemini API key not configured. Please set VITE_GEMINI_API_KEY.');
+  }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  
+  // Build the user prompt
+  const userPrompt = buildUserPrompt(openingCountHint, areaName);
+
+  // Try primary model first, fallback if needed
+  let result;
+  let modelUsed = PRIMARY_MODEL;
+  
+  try {
+    console.log(`[ScannerEngine] Attempting analysis with ${PRIMARY_MODEL}...`);
+    const model = genAI.getGenerativeModel({
+      model: PRIMARY_MODEL,
+      generationConfig: {
+        responseMimeType: 'application/json',
+      },
+    });
+    
+    // Fetch image and convert to base64 for Gemini
+    const imageResponse = await fetch(imageUrl);
+    const imageBlob = await imageResponse.blob();
+    const base64Data = await blobToBase64(imageBlob);
+    
+    result = await model.generateContent([
+      { text: EXTRACTION_RUBRIC },
+      { text: userPrompt },
+      {
+        inlineData: {
+          mimeType,
+          data: base64Data,
+        },
+      },
+    ]);
+  } catch (primaryError) {
+    console.warn(`[ScannerEngine] ${PRIMARY_MODEL} failed, falling back to ${FALLBACK_MODEL}:`, primaryError);
+    modelUsed = FALLBACK_MODEL;
+    
+    const fallbackModel = genAI.getGenerativeModel({
+      model: FALLBACK_MODEL,
+      generationConfig: {
+        responseMimeType: 'application/json',
+      },
+    });
+    
+    // Fetch image and convert to base64 for Gemini
+    const imageResponse = await fetch(imageUrl);
+    const imageBlob = await imageResponse.blob();
+    const base64Data = await blobToBase64(imageBlob);
+    
+    result = await fallbackModel.generateContent([
+      { text: EXTRACTION_RUBRIC },
+      { text: userPrompt },
+      {
+        inlineData: {
+          mimeType,
+          data: base64Data,
+        },
+      },
+    ]);
+  }
+
+  console.log(`[ScannerEngine] Analysis completed with ${modelUsed}`);
+  
+  const response = result.response;
+  const text = response.text();
+  
+  let signals: ExtractionSignals;
+  try {
+    signals = JSON.parse(text);
+  } catch {
+    console.error('[ScannerEngine] Failed to parse Gemini response:', text);
+    throw new Error('Failed to parse AI response. Please try again.');
+  }
+
+  const analysisData = scoreFromSignals(signals, openingCountHint ?? null);
+  
+  return analysisData;
+}
+
+// ============================================
 // ANALYZE FROM BASE64 (for supabase.ts integration)
 // ============================================
 
@@ -649,24 +753,85 @@ export async function analyzeQuoteFromBase64(
   openingCountHint?: number | null,
   areaName?: string | null
 ): Promise<AnalysisData> {
-  // Get API key from environment
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   
   if (!apiKey) {
     throw new Error('Gemini API key not configured. Please set VITE_GEMINI_API_KEY.');
   }
 
-  // Initialize Gemini
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    generationConfig: {
-      responseMimeType: 'application/json',
-    },
-  });
+  const userPrompt = buildUserPrompt(openingCountHint, areaName);
 
-  // Build the user prompt
+  // Try primary model first, fallback if needed
+  let result;
+  let modelUsed = PRIMARY_MODEL;
+  
+  try {
+    console.log(`[ScannerEngine] Attempting Deep Audit with ${PRIMARY_MODEL}...`);
+    const model = genAI.getGenerativeModel({
+      model: PRIMARY_MODEL,
+      generationConfig: {
+        responseMimeType: 'application/json',
+      },
+    });
+    
+    result = await model.generateContent([
+      { text: EXTRACTION_RUBRIC },
+      { text: userPrompt },
+      {
+        inlineData: {
+          mimeType,
+          data: base64Data,
+        },
+      },
+    ]);
+  } catch (primaryError) {
+    console.warn(`[ScannerEngine] ${PRIMARY_MODEL} failed, falling back to ${FALLBACK_MODEL}:`, primaryError);
+    modelUsed = FALLBACK_MODEL;
+    
+    const fallbackModel = genAI.getGenerativeModel({
+      model: FALLBACK_MODEL,
+      generationConfig: {
+        responseMimeType: 'application/json',
+      },
+    });
+    
+    result = await fallbackModel.generateContent([
+      { text: EXTRACTION_RUBRIC },
+      { text: userPrompt },
+      {
+        inlineData: {
+          mimeType,
+          data: base64Data,
+        },
+      },
+    ]);
+  }
+
+  console.log(`[ScannerEngine] Deep Audit completed with ${modelUsed}`);
+  
+  const response = result.response;
+  const text = response.text();
+  
+  let signals: ExtractionSignals;
+  try {
+    signals = JSON.parse(text);
+  } catch {
+    console.error('[ScannerEngine] Failed to parse Gemini response:', text);
+    throw new Error('Failed to parse AI response. Please try again.');
+  }
+
+  const analysisData = scoreFromSignals(signals, openingCountHint ?? null);
+  
+  return analysisData;
+}
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+function buildUserPrompt(openingCountHint?: number | null, areaName?: string | null): string {
   let userPrompt = `Extract evidence signals from the following window/door quote image.
 
 If the image is not a window/door quote, set isValidQuote to false and explain why in validityReason.
@@ -683,33 +848,19 @@ If the image is not a window/door quote, set isValidQuote to false and explain w
   }
 
   userPrompt += `\n\nExtract all evidence signals from the quote according to the extraction rubric and return your findings as a JSON object.`;
-
-  // Call Gemini with the image
-  const result = await model.generateContent([
-    { text: EXTRACTION_RUBRIC },
-    { text: userPrompt },
-    {
-      inlineData: {
-        mimeType,
-        data: base64Data,
-      },
-    },
-  ]);
-
-  const response = result.response;
-  const text = response.text();
   
-  // Parse the JSON response
-  let signals: ExtractionSignals;
-  try {
-    signals = JSON.parse(text);
-  } catch {
-    console.error('Failed to parse Gemini response:', text);
-    throw new Error('Failed to parse AI response. Please try again.');
-  }
+  return userPrompt;
+}
 
-  // Run deterministic scoring
-  const analysisData = scoreFromSignals(signals, openingCountHint ?? null);
-  
-  return analysisData;
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
