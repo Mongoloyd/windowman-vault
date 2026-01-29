@@ -282,7 +282,7 @@ export function ScannerUploadStep({ eventId, leadId, onUpload, onBack }: Scanner
         {/* Trust signals */}
         <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
           <Shield className="w-3.5 h-3.5" />
-          <span>Your document is encrypted and never shared with contractors</span>
+          <span>Your document is encrypted and saved in your vault</span>
         </div>
       </div>
     </motion.div>
