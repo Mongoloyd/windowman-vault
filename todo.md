@@ -7,3 +7,10 @@
 - [x] Add tRPC API endpoints for scans
 - [x] Write unit tests for leads/scans API
 - [x] Push database migrations
+
+## tRPC Migration
+- [x] Refactor VaultLeadGateModal to use tRPC for lead updates
+- [x] Update useSessionPersistence to use tRPC for lead validation
+- [x] Remove unused Supabase client functions
+- [x] Remove @supabase/supabase-js dependency
+- [ ] Test end-to-end flow with tRPC

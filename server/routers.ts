@@ -98,6 +98,8 @@ export const appRouter = router({
           callbackPreference: z.string().optional(),
           callbackTime: z.string().optional(),
           status: z.enum(["new", "contacted", "qualified", "converted", "lost"]).optional(),
+          notes: z.string().optional(),
+          escalationType: z.string().optional(),
         }),
       }))
       .mutation(async ({ input }) => {

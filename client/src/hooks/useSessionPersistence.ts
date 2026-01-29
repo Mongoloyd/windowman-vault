@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { VaultSession, VaultState, BranchChoice, LeadFormData, PivotFormData, ProjectDetailsFormData, EscalationFormData, ScanResult, FileMetadata } from '@/types/vault';
-import { validateLeadExists } from '@/lib/supabase';
+import { trpc } from '@/lib/trpc';
 import { generateEventId } from '@/lib/eventId';
 
 const STORAGE_KEY = 'wm_vault_session';
@@ -77,7 +77,21 @@ export function useSessionPersistence() {
 
         // If we have a lead_id, validate it still exists
         if (parsed.leadId) {
-          const exists = await validateLeadExists(parsed.leadId);
+          // Try to parse leadId as number for tRPC
+          const numericId = parseInt(parsed.leadId, 10);
+          let exists = false;
+          
+          if (!isNaN(numericId)) {
+            try {
+              // Use fetch directly since we can't use hooks in useEffect
+              const response = await fetch(`/api/trpc/leads.getById?input=${encodeURIComponent(JSON.stringify({ id: numericId }))}`);
+              const result = await response.json();
+              exists = result?.result?.data !== null && result?.result?.data !== undefined;
+            } catch (err) {
+              console.warn('[Session] Could not validate lead:', err);
+              exists = true; // Assume exists if we can't check
+            }
+          }
           
           if (!exists) {
             console.log('[Session] Lead not found in DB, starting fresh');

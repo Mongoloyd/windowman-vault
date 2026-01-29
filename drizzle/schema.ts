@@ -67,6 +67,10 @@ export const leads = mysqlTable("leads", {
   fbp: varchar("fbp", { length: 255 }),
   fbc: varchar("fbc", { length: 255 }),
   
+  // Notes and Escalation
+  notes: text("notes"),
+  escalationType: varchar("escalationType", { length: 64 }),
+  
   // Status
   status: mysqlEnum("status", ["new", "contacted", "qualified", "converted", "lost"]).default("new"),
   

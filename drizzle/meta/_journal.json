@@ -15,6 +15,13 @@
       "when": 1769668345182,
       "tag": "0001_goofy_vanisher",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1769671066249,
+      "tag": "0002_overjoyed_vance_astro",
+      "breakpoints": true
     }
   ]
 }

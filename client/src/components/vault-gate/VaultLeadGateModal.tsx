@@ -6,6 +6,8 @@
  * - State machine driven navigation
  * - Exit intercept after Step 1
  * - Session persistence for resume
+ * 
+ * ARCHITECTURE: Uses tRPC for all database operations
  */
 
 import { useEffect, useCallback, useState, useRef } from 'react';
@@ -15,7 +17,8 @@ import { useVaultStateMachine } from '@/hooks/useVaultStateMachine';
 import { useSessionPersistence } from '@/hooks/useSessionPersistence';
 import { useAttribution } from '@/hooks/useAttribution';
 import { pushDL } from '@/lib/tracking';
-import { analyzeQuote, updateLead } from '@/lib/supabase';
+import { trpc } from '@/lib/trpc';
+import { analyzeQuote } from '@/lib/supabase';
 import type { VaultState, LeadFormData, ScanResult, FileMetadata } from '@/types/vault';
 import type { ProjectDetails } from './steps/ProjectDetailsStep';
 
@@ -87,6 +90,36 @@ export function VaultLeadGateModal({ isOpen, onClose }: VaultLeadGateModalProps)
   
   // Track if we've loaded session
   const sessionLoaded = useRef(false);
+
+  // tRPC mutation for updating leads
+  const updateLeadMutation = trpc.leads.update.useMutation({
+    onError: (error) => {
+      console.error('[VaultModal] tRPC lead update error:', error.message);
+    },
+  });
+
+  // Helper function to update lead via tRPC
+  const updateLeadData = useCallback((updates: {
+    phone?: string;
+    windowCount?: number;
+    timeline?: string;
+    notes?: string;
+    escalationType?: string;
+  }) => {
+    if (!leadId) return;
+    
+    // Parse leadId to number (tRPC expects number ID)
+    const numericId = parseInt(leadId, 10);
+    if (isNaN(numericId)) {
+      console.error('[VaultModal] Invalid leadId for update:', leadId);
+      return;
+    }
+    
+    updateLeadMutation.mutate({
+      id: numericId,
+      updates,
+    });
+  }, [leadId, updateLeadMutation]);
 
   // Determine if user can exit (only on Step 1)
   const canExit = currentState === 'lead_capture';
@@ -180,10 +213,8 @@ export function VaultLeadGateModal({ isOpen, onClose }: VaultLeadGateModalProps)
     updateBranchChoice('yes');
     if (phone) {
       setPivotForm({ hasEstimate: true, phone });
-      // Update lead with phone
-      if (leadId) {
-        updateLead(leadId, { phone });
-      }
+      // Update lead with phone via tRPC
+      updateLeadData({ phone });
     }
     goToState('scanner_upload');
   };
@@ -193,10 +224,8 @@ export function VaultLeadGateModal({ isOpen, onClose }: VaultLeadGateModalProps)
     updateBranchChoice('no');
     if (phone) {
       setPivotForm({ hasEstimate: false, phone });
-      // Update lead with phone
-      if (leadId) {
-        updateLead(leadId, { phone });
-      }
+      // Update lead with phone via tRPC
+      updateLeadData({ phone });
     }
     goToState('vault_confirmation');
   };
@@ -238,14 +267,12 @@ export function VaultLeadGateModal({ isOpen, onClose }: VaultLeadGateModalProps)
 
   const handleProjectDetailsContinue = (details: ProjectDetails) => {
     setProjectDetails(details);
-    // Update lead with project details
-    if (leadId) {
-      updateLead(leadId, {
-        window_count: details.windowCount,
-        timeline: details.timeline,
-        notes: details.notes,
-      });
-    }
+    // Update lead with project details via tRPC
+    updateLeadData({
+      windowCount: details.windowCount,
+      timeline: details.timeline,
+      notes: details.notes,
+    });
     goToState('final_escalation');
   };
 
@@ -254,10 +281,8 @@ export function VaultLeadGateModal({ isOpen, onClose }: VaultLeadGateModalProps)
   };
 
   const handleEscalationSelect = (escalationType: string) => {
-    // Update lead with escalation preference
-    if (leadId) {
-      updateLead(leadId, { escalation_type: escalationType });
-    }
+    // Update lead with escalation preference via tRPC
+    updateLeadData({ escalationType });
     goToSuccess();
   };
 
@@ -458,7 +483,7 @@ export function VaultLeadGateModal({ isOpen, onClose }: VaultLeadGateModalProps)
                     <div
                       key={step}
                       className={`h-1 flex-1 rounded-full transition-colors ${
-                        index <= currentIndex ? 'bg-cyan-500' : 'bg-white/10'
+                        index <= currentIndex ? 'bg-cyan-500' : 'bg-slate-700'
                       }`}
                     />
                   ));
@@ -470,15 +495,19 @@ export function VaultLeadGateModal({ isOpen, onClose }: VaultLeadGateModalProps)
       </motion.div>
 
       {/* Exit Intercept Overlay */}
-      <ExitInterceptOverlay
-        isOpen={isExitInterceptActive}
-        eventId={eventId}
-        leadId={leadId || ''}
-        email={formValues.lead?.email || ''}
-        currentStep={exitFromState || currentState}
-        onContinue={handleExitInterceptContinue}
-        onSendLink={handleExitInterceptSendLink}
-      />
+      <AnimatePresence>
+        {isExitInterceptActive && (
+          <ExitInterceptOverlay
+            isOpen={isExitInterceptActive}
+            eventId={eventId}
+            leadId={leadId || ''}
+            email={formValues.lead?.email || ''}
+            currentStep={exitFromState || currentState}
+            onContinue={handleExitInterceptContinue}
+            onSendLink={handleExitInterceptSendLink}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
