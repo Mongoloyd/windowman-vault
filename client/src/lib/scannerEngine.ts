@@ -647,10 +647,11 @@ export function getMockAnalysis(): AnalysisData {
 // 1. Gemini 2.0 Pro - Best available reasoning (2026 stable)
 // 2. Gemini 1.5 Pro - Proven reliability (fallback)
 // 3. Gemini 1.5 Flash - Highest free tier limits
+// Note: Google Generative AI SDK requires fully qualified model names
 const MODEL_CHAIN = [
-  'gemini-2.0-pro',
-  'gemini-1.5-pro',
-  'gemini-1.5-flash',
+  'models/gemini-2.0-pro',
+  'models/gemini-1.5-pro',
+  'models/gemini-1.5-flash-001',
 ] as const;
 
 // Legacy exports for compatibility

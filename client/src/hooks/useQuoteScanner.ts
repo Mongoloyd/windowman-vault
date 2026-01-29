@@ -74,7 +74,17 @@ export function useQuoteScanner(): UseQuoteScannerReturn {
       // Step 3: Analyze using the URL (no base64 bloat)
       const { data, error: analysisError } = await analyzeQuote(url, file.type);
       
-      if (analysisError) throw analysisError;
+      if (analysisError) {
+        // Stop retry loop on 404 errors
+        const errorStr = String(analysisError);
+        if (errorStr.includes('404') || errorStr.includes('MODEL_NOT_FOUND')) {
+          console.error('[useQuoteScanner] 404 Error - stopping retry loop:', analysisError);
+          setError('Model not found. Please try again later.');
+          setIsAnalyzing(false);
+          return;
+        }
+        throw analysisError;
+      }
       
       if (!data) {
         throw new Error('No analysis result returned');
