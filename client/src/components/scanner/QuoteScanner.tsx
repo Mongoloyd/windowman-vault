@@ -98,7 +98,7 @@ export function QuoteScanner({ onGetScan, className }: QuoteScannerProps) {
           </div>
 
           {/* Instant Audit Results */}
-          <div className="flex items-center justify-center mt-4 text-sm text-slate-600 font-medium">
+          <div className="flex items-center justify-center mt-4 text-sm text-slate-500 font-medium">
             Instant Audit Results
           </div>
 
