@@ -84,7 +84,14 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
   }, [eventId]);
 
   const handleChange = (field: keyof LeadFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }));
+    let value = e.target.value;
+    
+    // ZIP code: enforce 5 digits, numeric only
+    if (field === 'zip') {
+      value = value.replace(/\D/g, '').slice(0, 5);
+    }
+    
+    setFormData(prev => ({ ...prev, [field]: value }));
     setError(null);
   };
 
@@ -237,16 +244,36 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
     >
       {/* Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 mb-4">
-          <ScanLine className="w-4 h-4 text-cyan-400" />
-          <span className="text-sm text-cyan-400 font-medium">Powered by Gemini 3 Flash</span>
+        <div className="inline-flex flex-col items-center gap-1 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/20 mb-4 shimmer-badge">
+          <div className="flex items-center gap-2">
+            <ScanLine className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm text-cyan-400 font-medium">Powered by Google AI</span>
+          </div>
+          <span className="text-xs text-cyan-300/70">99.2% accuracy on handwritten quotes</span>
         </div>
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
           Unmask the Truth <span className="text-cyan-400">Hiding in Your Quote</span>
         </h2>
-        <p className="text-gray-400 max-w-md mx-auto" style={{color: '#dbdbdb'}}>
-          Stop Wondering. Upload Your Quote/Estimate and Let our AI Flag Hidden Risks, Missing Scope, Fair Pricing & More. Feel Confident In Your Project
+        <p className="text-gray-400 max-w-md mx-auto mb-6" style={{color: '#dbdbdb'}}>
+          Stop Wondering. Upload Your Quote and Let AI Flag Hidden Risks, Missing Scope, Fair Pricing & More. Feel Confident In Your Project
         </p>
+        
+        {/* Win-Win Promise */}
+        <div className="max-w-lg mx-auto p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20">
+          <h3 className="text-lg font-semibold text-emerald-400 mb-2">The Win-Win Promise</h3>
+          <p className="text-sm text-gray-300 mb-3">No matter the outcome, you come out ahead.</p>
+          <ul className="space-y-2 text-sm text-gray-400">
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-400 mt-0.5">✓</span>
+              <span><strong className="text-white">Quote is Great?</strong> You did your due diligence. You sleep easy.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-400 mt-0.5">✓</span>
+              <span><strong className="text-white">Quote is overpriced or missing key words?</strong> We catch it. You win.</span>
+            </li>
+          </ul>
+          <p className="text-center mt-3 text-lg font-bold text-cyan-400">Cost to you: $0.00</p>
+        </div>
       </div>
 
       {/* Form */}
@@ -311,7 +338,9 @@ export function LeadCaptureStep({ eventId, initialValues, onSuccess }: LeadCaptu
           <Input
             id="zip"
             type="text"
+            inputMode="numeric"
             placeholder="33101"
+            maxLength={5}
             value={formData.zip}
             onChange={handleChange('zip')}
             className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20"

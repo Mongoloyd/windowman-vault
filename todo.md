@@ -186,3 +186,21 @@
 - [x] Update VaultBenefits component to use new image asset
 - [x] Fix JSX errors in AlphaRevealGateStep
 - [x] Restart dev server
+
+## Analysis Theater & Form UX Improvements (Jan 30)
+- [ ] Restore analysis theater checklist with 5 items (Safety & Code Match, Install & Scope Clarity, Price Fairness, Fine Print Transparency, Warranty & Protections)
+- [ ] Add animated checkmarks that progress sequentially during analysis
+- [ ] Add shimmer effect around "Powered by Gemini 3 OCR Flash" badge
+- [ ] Enforce 5-digit hard stop on ZIP code input field
+- [ ] Test all animations and validations
+
+## CRO Improvements - Multi-Step Funnel (Jan 30)
+- [x] Update LeadCaptureStep: Replace social proof with "Win-Win Promise" messaging
+- [x] Add 5-digit ZIP code validation (maxLength + numeric only)
+- [x] Remove path fork images, replace with benefit-driven text cards
+- [x] Restore analysis theater checklist (5 items with sequential animations)
+- [x] Add tooltips to each checklist item explaining what it means
+- [x] Update Gemini badge: "Powered by Google AI" + "99.2% accuracy" subtext
+- [x] Add shimmer/pulse animation to Gemini badge
+- [x] Verify no TypeScript/build errors
+- [ ] Implement exit intent modal (deferred - nice-to-have)

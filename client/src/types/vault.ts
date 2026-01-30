@@ -145,17 +145,48 @@ export interface VaultReducerState {
 export interface TheaterStage {
   id: number;
   label: string;
+  tooltip: string;
   progressStart: number;
   progressEnd: number;
 }
 
 // Analysis theater stages (matching rubric dimensions)
 export const THEATER_STAGES: TheaterStage[] = [
-  { id: 1, label: 'Analyzing Safety & Code Match…', progressStart: 0, progressEnd: 20 },
-  { id: 2, label: 'Checking Install & Scope Clarity…', progressStart: 20, progressEnd: 40 },
-  { id: 3, label: 'Evaluating Price Fairness…', progressStart: 40, progressEnd: 60 },
-  { id: 4, label: 'Reviewing Fine Print Transparency…', progressStart: 60, progressEnd: 80 },
-  { id: 5, label: 'Verifying Warranty & Protection…', progressStart: 80, progressEnd: 100 },
+  { 
+    id: 1, 
+    label: 'Analyzing Safety & Code Match…', 
+    tooltip: "Verifies your quote meets Florida's hurricane protection standards",
+    progressStart: 0, 
+    progressEnd: 20 
+  },
+  { 
+    id: 2, 
+    label: 'Checking Install & Scope Clarity…', 
+    tooltip: "Checks if the quote clearly defines what's included (and what's not)",
+    progressStart: 20, 
+    progressEnd: 40 
+  },
+  { 
+    id: 3, 
+    label: 'Evaluating Price Fairness…', 
+    tooltip: "Compares your price against 10,000+ real Florida installations",
+    progressStart: 40, 
+    progressEnd: 60 
+  },
+  { 
+    id: 4, 
+    label: 'Reviewing Fine Print Transparency…', 
+    tooltip: "Scans for hidden fees, exclusions, and vague language",
+    progressStart: 60, 
+    progressEnd: 80 
+  },
+  { 
+    id: 5, 
+    label: 'Verifying Warranty & Protection…', 
+    tooltip: "Ensures your coverage matches industry best practices",
+    progressStart: 80, 
+    progressEnd: 100 
+  },
 ];
 
 // Props for step components

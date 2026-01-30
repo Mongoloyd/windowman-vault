@@ -385,3 +385,26 @@
 .progress-glow {
   box-shadow: 0 0 10px oklch(0.75 0.15 195 / 50%);
 }
+
+/* Shimmer animation for Gemini badge */
+@keyframes shimmer {
+  0% {
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.3), 0 0 20px rgba(34, 211, 238, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.5), 0 0 30px rgba(34, 211, 238, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.3), 0 0 20px rgba(34, 211, 238, 0.1);
+  }
+}
+
+.shimmer-badge {
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-badge {
+    animation: none;
+  }
+}

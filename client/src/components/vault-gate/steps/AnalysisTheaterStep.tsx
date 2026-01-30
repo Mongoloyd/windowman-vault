@@ -23,7 +23,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, CheckCircle, Loader2 } from 'lucide-react';
+import { Shield, CheckCircle, Loader2, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { THEATER_STAGES } from '@/types/vault';
 import type { ScanResult } from '@/types/vault';
 import { 
@@ -348,11 +349,25 @@ export function AnalysisTheaterStep({
                   <span className="text-xs text-gray-500">{stage.id}</span>
                 )}
               </div>
-              <span className={`text-sm ${
-                isActive ? 'text-cyan-400' : isCompleted ? 'text-emerald-400' : 'text-gray-500'
-              }`}>
-                {stage.label}
-              </span>
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-2 flex-1 cursor-help">
+                      <span className={`text-sm ${
+                        isActive ? 'text-cyan-400' : isCompleted ? 'text-emerald-400' : 'text-gray-500'
+                      }`}>
+                        {stage.label}
+                      </span>
+                      <Info className={`w-3 h-3 ${
+                        isActive ? 'text-cyan-400/60' : isCompleted ? 'text-emerald-400/60' : 'text-gray-500/60'
+                      }`} />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    <p className="text-sm">{stage.tooltip}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </motion.div>
           );
         })}

@@ -115,15 +115,8 @@ export function PathForkStep({ eventId, leadId, firstName, onAlpha, onBeta }: Pa
               : 'border-white/10 hover:border-cyan-500/50'
           }`}
         >
-          {/* Background Image Overlay */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-            style={{
-              backgroundImage: `url('https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&q=80')`,
-            }}
-          />
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-slate-900/40" />
+          {/* Solid Background - No Image */}
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
           
           {/* Content */}
           <div className="relative h-full flex flex-col justify-end p-6">
@@ -152,13 +145,26 @@ export function PathForkStep({ eventId, leadId, firstName, onAlpha, onBeta }: Pa
             </div>
             
             {/* Title & Description */}
-            <h3 className="text-xl md:text-2xl font-bold text-white mb-2">
-              Yes, Audit My Quote
+            <h3 className="text-xl md:text-2xl font-bold text-white mb-3">
+              I Have a Quote to Scan
             </h3>
-            <p className="text-gray-300 text-sm md:text-base mb-4 leading-relaxed">
-              Upload your contractor's estimate and let our AI instantly reveal hidden fees, 
-              missing items, and potential savings.
+            <p className="text-cyan-300 text-sm font-medium mb-3">
+              Get instant analysis in 60 seconds
             </p>
+            <ul className="space-y-2 text-sm text-gray-300">
+              <li className="flex items-start gap-2">
+                <span className="text-cyan-400 mt-0.5">•</span>
+                <span>Find hidden fees</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-cyan-400 mt-0.5">•</span>
+                <span>Verify Florida code compliance</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-cyan-400 mt-0.5">•</span>
+                <span>Compare against 10,000+ real quotes</span>
+              </li>
+            </ul>
             
             {/* CTA */}
             <div className="flex items-center gap-2 text-cyan-400 font-semibold group-hover:gap-3 transition-all">
@@ -185,15 +191,8 @@ export function PathForkStep({ eventId, leadId, firstName, onAlpha, onBeta }: Pa
               : 'border-white/10 hover:border-emerald-500/50'
           }`}
         >
-          {/* Background Image Overlay */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-            style={{
-              backgroundImage: `url('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80')`,
-            }}
-          />
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-slate-900/40" />
+          {/* Solid Background - No Image */}
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
           
           {/* Content */}
           <div className="relative h-full flex flex-col justify-end p-6">
@@ -222,13 +221,26 @@ export function PathForkStep({ eventId, leadId, firstName, onAlpha, onBeta }: Pa
             </div>
             
             {/* Title & Description */}
-            <h3 className="text-xl md:text-2xl font-bold text-white mb-2">
-              No, I'm Just Researching
+            <h3 className="text-xl md:text-2xl font-bold text-white mb-3">
+              I'm Still Researching
             </h3>
-            <p className="text-gray-300 text-sm md:text-base mb-4 leading-relaxed">
-              Explore our free protection tools, price calculators, and expert guides 
-              to prepare before getting quotes.
+            <p className="text-emerald-300 text-sm font-medium mb-3">
+              Get insider tools before you talk to contractors
             </p>
+            <ul className="space-y-2 text-sm text-gray-300">
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                <span>Fair price calculator</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                <span>Red-flag checklist</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                <span>Claim survival kit</span>
+              </li>
+            </ul>
             
             {/* CTA */}
             <div className="flex items-center gap-2 text-emerald-400 font-semibold group-hover:gap-3 transition-all">
