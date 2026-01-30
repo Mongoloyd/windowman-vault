@@ -120,6 +120,7 @@
 ### Phase 9: Integration & Testing
 - [x] Wire all steps into VaultLeadGateModalV2
 - [x] Write unit tests for dual-path funnel (60 tests passing)
+- [x] Fix nested button HTML validation error in BetaExploreToolsStep
 - [ ] Test Alpha path end-to-end (browser)
 - [ ] Test Beta path end-to-end (browser)
 - [ ] Verify all analytics events fire correctly

@@ -172,9 +172,16 @@ export function BetaExploreToolsStep({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <button
+              <div
                 onClick={() => handleToolClick(tool.id)}
-                className={`w-full p-5 rounded-xl border-2 text-left transition-all duration-300 ${
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    handleToolClick(tool.id);
+                  }
+                }}
+                className={`w-full p-5 rounded-xl border-2 text-left transition-all duration-300 cursor-pointer ${
                   isSelected
                     ? `border-${tool.color}-400 bg-gradient-to-br ${tool.gradient}`
                     : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
@@ -224,7 +231,7 @@ export function BetaExploreToolsStep({
                     </motion.div>
                   </div>
                 </div>
-              </button>
+              </div>
             </motion.div>
           );
         })}
