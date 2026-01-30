@@ -56,3 +56,40 @@
 - [x] Verify lead_capture_success event in LeadCaptureStep with lead_id
 - [x] Verify quote_scan_complete event in AnalysisTheaterStep with overall_score and savings_opportunity
 - [x] Provide console verification command for GTM container
+
+
+## Dual-Path Funnel Implementation (Jan 30)
+
+### Phase 1: Database Migration
+- [x] Create migration script for new leads columns (path_type, is_homeowner, window_count, timeline_urgency, sms_verified, ocr_city, phone_submitted_at, sms_verified_at, lead_value_score)
+- [x] Create verification_codes table for SMS PIN storage
+- [x] Create rollback script for safe recovery
+- [x] Execute migration against Supabase (user ran manually)
+- [x] Verify schema changes
+
+### Phase 2: Backend Endpoints - Path Alpha
+- [x] POST /api/alpha/upload - Handle quote file upload
+- [x] POST /api/alpha/phone - Submit phone for SMS verification
+- [x] POST /api/alpha/verify - Verify SMS PIN code
+- [x] GET /api/alpha/status - Get analysis status for polling
+- [x] POST /api/alpha/unlock - Unlock blurred report
+- [x] POST /api/alpha/timeline - Submit timeline selection
+- [x] POST /api/alpha/final-action - Handle final CTA selection
+
+### Phase 3: Backend Endpoints - Path Beta
+- [x] POST /api/beta/select-tool - Track educational tool selection
+- [x] POST /api/beta/filter - Submit filter questions (windows, homeowner, timeline)
+- [x] POST /api/beta/phone - Submit phone for SMS verification
+- [x] POST /api/beta/verify - Verify SMS PIN code
+- [x] POST /api/beta/final-action - Handle final CTA selection
+
+### Phase 4: SMS Service
+- [x] Create smsService.ts for Twilio integration
+- [x] Implement sendVerificationCode function
+- [x] Implement verifyCode function
+- [x] Add rate limiting for SMS sends
+
+### Phase 5: Lead Value Calculation
+- [x] Create leadValueService.ts for Meta pixel value weighting
+- [x] Implement calculateLeadValue function based on (homeowner + windows + timeline)
+- [x] Write unit tests for lead value calculation (24 tests passing)

@@ -5,6 +5,8 @@ import { publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
+import { alphaRouter } from "./routes/alpha";
+import { betaRouter } from "./routes/beta";
 import { 
   createLead, 
   upsertLead, 
@@ -22,6 +24,13 @@ import {
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
+  
+  // ============================================
+  // DUAL-PATH FUNNEL ROUTERS
+  // ============================================
+  alpha: alphaRouter,  // Path Alpha: Quote auditors flow
+  beta: betaRouter,    // Path Beta: Researchers flow
+  
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
