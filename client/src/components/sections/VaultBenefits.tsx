@@ -177,9 +177,9 @@ export function VaultBenefits() {
             </div>
             <div className="flex justify-center">
               <img
-                src="/images/survivalclaimkit.png"
+                src="/claim-survival-kit.png"
                 alt="Claim Survival Kit - Hurricane Impact Window Documentation Guide"
-                className="w-full max-w-xs rounded-xl shadow-lg"
+                className="w-full max-w-sm rounded-xl shadow-2xl"
               />
             </div>
           </div>

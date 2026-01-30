@@ -124,3 +124,65 @@
 - [ ] Test Alpha path end-to-end (browser)
 - [ ] Test Beta path end-to-end (browser)
 - [ ] Verify all analytics events fire correctly
+
+## End-to-End Technical Validation (Jan 30)
+
+### Part 1: Alpha Path Testing
+- [ ] Test Alpha path initiation (click "Get Free Scan" → PathForkStep)
+- [ ] Test file upload with valid PDF/image
+- [ ] Verify Analysis Theater simulation triggers
+- [ ] Test blurred report visibility before PIN entry
+- [ ] Test phone number entry and validation
+- [ ] Test mock PIN verification (1234)
+- [ ] Verify report unblurs after PIN verification
+- [ ] Test AlphaChatStep loads correctly
+- [ ] Test timeline selection
+- [ ] Test final CTA button (Request Vetted Quote)
+- [ ] Verify lead_value_score is calculated and stored
+
+### Part 2: Beta Path Testing
+- [ ] Test Beta path initiation (select "No, I'm Just Researching")
+- [ ] Verify 4 educational tool boxes appear
+- [ ] Test tool selection and highlighting
+- [ ] Test Golden Signal questions (homeowner, windows, timeline)
+- [ ] Test SMS verification on Beta path
+- [ ] Verify lead_value_score calculation for Beta answers
+- [ ] Test vault confirmation completion
+
+### Part 3: State Persistence & Back Button
+- [ ] Test page refresh at PIN entry step (should resume at PIN, not reset)
+- [ ] Test back button logic (should return to previous step, not Path selection)
+- [ ] Test data retention after back button navigation
+- [ ] Test session recovery after page refresh
+
+### Part 4: Error Handling & Boundaries
+- [ ] Test invalid file upload (non-PDF/image format)
+- [ ] Test oversized file upload (>10MB)
+- [ ] Test PIN submission with <6 digits (button should be disabled)
+- [ ] Test empty phone number submission
+- [ ] Test invalid phone number format
+- [ ] Test network error recovery
+
+### Part 5: Analytics & Lead Value
+- [ ] Verify path_type (alpha/beta) in GTM events
+- [ ] Verify lead_capture_success event fires with correct payload
+- [ ] Verify lead_value_score in console/network tab
+- [ ] Test lead value calculation: homeowner + 10+ windows + 1-3 months = $400-600 range
+- [ ] Verify all GTM events fire in correct sequence
+
+### Part 6: Security & DOM Inspection
+- [ ] Verify blurred report data is not readable in DOM before PIN entry
+- [ ] Check that sensitive data is not exposed in HTML source
+- [ ] Verify blur is CSS-based (not just visual obfuscation)
+- [ ] Test console for no sensitive data leaks
+
+### Part 7: Validation Report
+- [ ] Document all test results
+- [ ] Create summary of issues found
+- [ ] Provide recommendations for fixes
+
+## Bonus Resource Update (Jan 30)
+- [x] Replace Claim Survival Kit text content with professional image
+- [x] Update VaultBenefits component to use new image asset
+- [x] Fix JSX errors in AlphaRevealGateStep
+- [x] Restart dev server
