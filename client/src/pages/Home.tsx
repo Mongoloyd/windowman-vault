@@ -15,7 +15,7 @@ import { HowItWorks } from "@/components/sections/HowItWorks";
 import { VaultCTA } from "@/components/sections/VaultCTA";
 import { Footer } from "@/components/sections/Footer";
 import { Navbar } from "@/components/layout/Navbar";
-import { VaultLeadGateModal } from "@/components/vault-gate/VaultLeadGateModal";
+import { VaultLeadGateModalV2 } from "@/components/vault-gate/VaultLeadGateModalV2";
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,7 +43,7 @@ export default function Home() {
       <Footer />
       
       {/* Vault Lead Gate Modal */}
-      <VaultLeadGateModal isOpen={isModalOpen} onClose={closeModal} />
+      <VaultLeadGateModalV2 isOpen={isModalOpen} onClose={closeModal} />
     </div>
   );
 }

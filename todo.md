@@ -93,3 +93,33 @@
 - [x] Create leadValueService.ts for Meta pixel value weighting
 - [x] Implement calculateLeadValue function based on (homeowner + windows + timeline)
 - [x] Write unit tests for lead value calculation (24 tests passing)
+
+
+### Phase 6: Frontend Components - Step 2 Fork
+- [x] Create PathForkStep.tsx - Two visual decision cards (Alpha/Beta)
+- [x] Remove phone field from early steps
+- [x] Add document/scanner imagery for Alpha card
+- [x] Add tools/library imagery for Beta card
+- [x] Wire fork selection to set path_type in lead record
+
+### Phase 7: Frontend Components - Alpha Path
+- [x] Create AlphaUploadStep.tsx - Cool drag-and-drop upload screen (Step 3)
+- [x] Create AlphaRevealGateStep.tsx - Blurred report with phone/PIN unlock (Step 4)
+- [x] Create AlphaChatStep.tsx - Timeline selector + AI chat with pre-filled question (Step 5)
+- [x] Create AlphaNextStepsStep.tsx - Call option + three option cards (Step 6)
+- [x] Implement OCR city extraction display
+- [x] Implement blur-to-unblur animation on PIN verification
+
+### Phase 8: Frontend Components - Beta Path
+- [x] Create BetaExploreToolsStep.tsx - Four tool cards grid (Step 3)
+- [x] Create BetaFilterStep.tsx - Three questions + chat (Step 4)
+- [x] Create BetaVaultConfirmStep.tsx - Phone/PIN only on "confirm Vault access" card (Step 5)
+- [x] Remove savings bar from Beta path
+- [x] Add "When you get an estimate, come back here" copy
+
+### Phase 9: Integration & Testing
+- [x] Wire all steps into VaultLeadGateModalV2
+- [x] Write unit tests for dual-path funnel (60 tests passing)
+- [ ] Test Alpha path end-to-end (browser)
+- [ ] Test Beta path end-to-end (browser)
+- [ ] Verify all analytics events fire correctly
