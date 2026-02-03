@@ -7,6 +7,7 @@
 
 import { useState, useCallback } from "react";
 import { HeroSection } from "@/components/sections/HeroSection";
+import { SampleReportSection } from "@/components/sections/SampleReportSection";
 import { ScannerShowcase } from "@/components/sections/ScannerShowcase";
 import { ProblemAgitation } from "@/components/sections/ProblemAgitation";
 import { VaultBenefits } from "@/components/sections/VaultBenefits";
@@ -33,6 +34,7 @@ export default function Home() {
       <Navbar onGetScan={openModal} />
       <main>
         <HeroSection onGetScan={openModal} />
+        <SampleReportSection onGetScan={openModal} />
         <ScannerShowcase onGetScan={openModal} />
         <ProblemAgitation />
         <VaultBenefits />
