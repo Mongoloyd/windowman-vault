@@ -204,3 +204,14 @@
 - [x] Add shimmer/pulse animation to Gemini badge
 - [x] Verify no TypeScript/build errors
 - [ ] Implement exit intent modal (deferred - nice-to-have)
+
+## Sample Report Preview Feature (Feb 3)
+- [x] Create SampleReportCard component with glassmorphism styling
+- [x] Add animated score circle (count-up from 0 to 62)
+- [x] Add 5-dimension progress bars (Safety, Scope, Price, Fine Print, Warranty)
+- [x] Add staggered animation for progress bars
+- [x] Add Warnings Detected section (4 red alert cards)
+- [x] Add Missing Items section (3 amber pill tags)
+- [x] Add gradient CTA button (cyan-to-emerald)
+- [x] Integrate SampleReportSection into landing page (after hero)
+- [x] Test animations and responsiveness
